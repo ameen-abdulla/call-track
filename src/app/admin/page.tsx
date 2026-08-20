@@ -202,12 +202,35 @@ export default function AdminDashboard() {
     <main className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
       <div className="bg-gray-900 border-b border-gray-800 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-bold text-white">Admin Dashboard</h1>
             <p className="text-xs text-gray-400">{session?.user?.name}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/admin/freelancers"
+              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 hover:text-white transition-colors border border-gray-700 min-h-[36px]"
+            >
+              Freelancers
+              {pendingFreelancers > 0 && (
+                <span className="bg-yellow-950 text-yellow-400 border border-yellow-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {pendingFreelancers}
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/admin/tags"
+              className="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 hover:text-white transition-colors border border-gray-700 min-h-[36px] flex items-center"
+            >
+              Tags
+            </Link>
+            <Link
+              href="/admin/contacts/unassigned"
+              className="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 hover:text-white transition-colors border border-gray-700 min-h-[36px] flex items-center"
+            >
+              Unassigned
+            </Link>
             <NotificationBell />
             <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-xs text-gray-500 hover:text-gray-400 px-2 py-1 min-h-[44px]">Sign out</button>
           </div>
@@ -273,6 +296,25 @@ export default function AdminDashboard() {
                   <option key={s} value={s}>{s.replace('_',' ')}</option>
                 ))}
               </select>
+              <select
+                value={filterPriority}
+                onChange={e => setFilterPriority(e.target.value)}
+                className="px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm min-h-[44px] focus:outline-none"
+              >
+                <option value="">All Priorities</option>
+                <option value="A">Priority A</option>
+                <option value="B">Priority B</option>
+              </select>
+              <select
+                value={filterTag}
+                onChange={e => setFilterTag(e.target.value)}
+                className="px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm min-h-[44px] focus:outline-none"
+              >
+                <option value="">All Tags</option>
+                {tags.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
               <button
                 onClick={() => setShowAddContact(true)}
                 className="flex items-center gap-1 bg-blue-600 text-white px-3 py-2 rounded-xl text-sm font-medium min-h-[44px] hover:bg-blue-700 transition-colors"
@@ -288,37 +330,54 @@ export default function AdminDashboard() {
             <div className="space-y-2">
               {loading ? (
                 <div className="text-center py-8 text-gray-500">Loading...</div>
-              ) : contacts.map(contact => (
-                <div key={contact.id} className="bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-800">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setShowContactDetail(contact)}>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-white">{contact.name}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[contact.status] || 'bg-gray-800 text-gray-300'}`}>
-                          {contact.status.replace('_', ' ')}
-                        </span>
+              ) : contacts.map(contact => {
+                const assigned = contact.assignedTo || contact.assignedAgent
+                return (
+                  <div key={contact.id} className="bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-800">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setShowContactDetail(contact)}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-white">{contact.name}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[contact.status] || 'bg-gray-800 text-gray-300'}`}>
+                            {contact.status.replace('_', ' ')}
+                          </span>
+                          {contact.callPriority && (
+                            <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-950 text-blue-400 border border-blue-800">
+                              Priority {contact.callPriority}
+                            </span>
+                          )}
+                        </div>
+                        {contact.company && <p className="text-xs text-gray-400">{contact.company}</p>}
+                        <p className="text-sm text-gray-400 mt-0.5">{contact.phone}</p>
+                        {contact.phone2 && (
+                          <p className="text-xs text-gray-500">📱 {contact.phone2}</p>
+                        )}
+                        {contact.tags && contact.tags.length > 0 && (
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            {contact.tags.map(t => (
+                              <span key={t.tag.id} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
+                                {t.tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {contact.topic && (
+                          <p className="text-xs text-blue-400 mt-1 line-clamp-1">📋 {contact.topic}</p>
+                        )}
+                        {assigned && (
+                          <p className="text-xs text-gray-500 mt-0.5">Assigned to: {assigned.name}</p>
+                        )}
                       </div>
-                      {contact.company && <p className="text-xs text-gray-400">{contact.company}</p>}
-                      <p className="text-sm text-gray-400 mt-0.5">{contact.phone}</p>
-                      {contact.phone2 && (
-                        <p className="text-xs text-gray-500">📱 {contact.phone2}</p>
-                      )}
-                      {contact.topic && (
-                        <p className="text-xs text-blue-400 mt-1 line-clamp-1">📋 {contact.topic}</p>
-                      )}
-                      {contact.assignedAgent && (
-                        <p className="text-xs text-gray-500 mt-0.5">Assigned to: {contact.assignedAgent.name}</p>
-                      )}
+                      <button
+                        onClick={() => { setShowAssign(contact); setAssignTopic(contact.topic || '') }}
+                        className="flex-shrink-0 bg-indigo-950 text-indigo-300 hover:bg-indigo-900 px-3 py-2 rounded-xl text-xs font-medium min-h-[44px] transition-colors border border-indigo-800"
+                      >
+                        Assign
+                      </button>
                     </div>
-                    <button
-                      onClick={() => { setShowAssign(contact); setAssignTopic(contact.topic || '') }}
-                      className="flex-shrink-0 bg-indigo-950 text-indigo-300 hover:bg-indigo-900 px-3 py-2 rounded-xl text-xs font-medium min-h-[44px] transition-colors border border-indigo-800"
-                    >
-                      Assign
-                    </button>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -579,7 +638,22 @@ function ContactDetail({ contact }: { contact: Contact }) {
         <div><span className="text-gray-400">Company</span><p className="font-medium text-white">{contact.company || '—'}</p></div>
         <div><span className="text-gray-400">Email</span><p className="font-medium text-white">{contact.email || '—'}</p></div>
         <div><span className="text-gray-400">Source</span><p className="font-medium text-white">{contact.source || '—'}</p></div>
+        {contact.callPriority && (
+          <div><span className="text-gray-400">Call Priority</span><p className="font-medium text-blue-400">Priority {contact.callPriority}</p></div>
+        )}
         <div className="col-span-2"><span className="text-gray-400">Status</span><p className="font-medium text-white capitalize">{contact.status.replace('_', ' ')}</p></div>
+        {contact.tags && contact.tags.length > 0 && (
+          <div className="col-span-2">
+            <span className="text-gray-400">Tags</span>
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {contact.tags.map(t => (
+                <span key={t.tag.id} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full border border-gray-700">
+                  {t.tag.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {contact.topic && (
           <div className="col-span-2">
             <span className="text-gray-400">Topic</span>
