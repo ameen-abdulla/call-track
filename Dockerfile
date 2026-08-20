@@ -8,6 +8,9 @@ RUN npm ci
 # Copy source
 COPY . .
 
+# Ensure unix line endings and executable permission on entrypoint script
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
+
 # Generate Prisma client & build Next.js
 RUN npx prisma generate
 RUN npm run build
