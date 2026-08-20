@@ -24,11 +24,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   initServer()
 
   return (
-    <html lang="en">
+    <html lang="en" className="dark bg-gray-950 text-white">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} bg-gray-950 text-white antialiased`}>
         {children}
       </body>
     </html>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import { Users, Phone, TrendingUp, AlertCircle, Upload, UserPlus, Bell } from 'lucide-react'
+import { Users, Phone, TrendingUp, AlertCircle, Upload, UserPlus, Bell, Pencil } from 'lucide-react'
 import { NotificationBell } from '@/components/notification-bell'
 
 // --- Types ---
@@ -61,6 +61,9 @@ export default function AdminDashboard() {
   const [showAddContact, setShowAddContact] = useState(false)
   const [showAssign, setShowAssign] = useState<Contact | null>(null)
   const [showContactDetail, setShowContactDetail] = useState<Contact | null>(null)
+  const [editingAgent, setEditingAgent] = useState<{ id: string; name: string } | null>(null)
+  const [editAgentName, setEditAgentName] = useState('')
+  const [savingAgentName, setSavingAgentName] = useState(false)
 
   // Add contact form
   const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', company: '', source: '', topic: '' })
@@ -152,6 +155,22 @@ export default function AdminDashboard() {
     const data = await res.json()
     alert(`Imported ${data.imported} contacts`)
     refreshAll()
+  }
+
+  async function handleUpdateAgentName() {
+    if (!editingAgent || !editAgentName.trim()) return
+    setSavingAgentName(true)
+    const res = await fetch(`/api/users/${editingAgent.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editAgentName.trim() }),
+    })
+    setSavingAgentName(false)
+    if (res.ok) {
+      setEditingAgent(null)
+      setEditAgentName('')
+      refreshAll()
+    }
   }
 
   return (
@@ -336,7 +355,19 @@ export default function AdminDashboard() {
               <h2 className="font-semibold mb-3">Secretaries</h2>
               {agents.map(agent => (
                 <div key={agent.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                  <p className="text-sm font-medium">{agent.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{agent.name}</p>
+                    <button
+                      onClick={() => {
+                        setEditingAgent(agent)
+                        setEditAgentName(agent.name)
+                      }}
+                      className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 min-h-[32px] min-w-[32px] flex items-center justify-center"
+                      title="Edit name"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
                 </div>
               ))}
@@ -445,6 +476,38 @@ export default function AdminDashboard() {
               <button onClick={() => setShowContactDetail(null)} className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px]">✕</button>
             </div>
             <ContactDetail contact={showContactDetail} />
+          </div>
+        </div>
+      )}
+
+      {/* Edit Secretary Name Modal */}
+      {editingAgent && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h2 className="font-bold text-gray-900">Edit Secretary Name</h2>
+              <button onClick={() => setEditingAgent(null)} className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px]">✕</button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Secretary Name</label>
+                <input
+                  type="text"
+                  value={editAgentName}
+                  onChange={e => setEditAgentName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 rounded-xl border text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter name"
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={handleUpdateAgentName}
+                disabled={!editAgentName.trim() || savingAgentName}
+                className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold text-sm min-h-[44px] disabled:opacity-50"
+              >
+                {savingAgentName ? 'Saving...' : 'Save Name'}
+              </button>
+            </div>
           </div>
         </div>
       )}

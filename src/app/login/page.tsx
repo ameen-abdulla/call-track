@@ -31,21 +31,21 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Call Track</h1>
-          <p className="text-gray-500 mt-1">Marketing Call & Feedback</p>
+          <h1 className="text-3xl font-bold text-white">Call Track</h1>
+          <p className="text-gray-400 mt-1">Marketing Call & Feedback</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-6">
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl shadow-xl p-6">
           {/* Role Toggle */}
-          <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+          <div className="flex rounded-xl bg-gray-800 p-1 mb-6">
             <button
               type="button"
               onClick={() => setRole('agent')}
               className={`flex-1 py-3 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                role === 'agent' ? 'bg-white shadow text-blue-600' : 'text-gray-500'
+                role === 'agent' ? 'bg-gray-700 shadow text-blue-400' : 'text-gray-400'
               }`}
             >
               Secretary
@@ -54,7 +54,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setRole('admin')}
               className={`flex-1 py-3 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                role === 'admin' ? 'bg-white shadow text-blue-600' : 'text-gray-500'
+                role === 'admin' ? 'bg-gray-700 shadow text-blue-400' : 'text-gray-400'
               }`}
             >
               Admin
@@ -63,31 +63,31 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
+                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                 placeholder="your@email.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
+                className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl">{error}</div>
+              <div className="bg-red-950 text-red-400 text-sm p-3 rounded-xl border border-red-900">{error}</div>
             )}
 
             <button
