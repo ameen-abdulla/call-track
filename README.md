@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Call Track — Marketing Call & Feedback App
 
-## Getting Started
+A mobile-first web app for tracking marketing calls, logging outcomes, and managing follow-ups.
 
-First, run the development server:
+## Quick Start
+
+### Prerequisites
+- Node.js 20+
+- npm
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env
+# Edit .env if needed (defaults work out of the box)
+
+# Set up database and seed
+npm run db:push
+npm run db:seed
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Default Login Credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@calltrack.local | admin123 |
+| Secretary | secretary@calltrack.local | secretary123 |
 
-## Learn More
+> ⚠️ Change these passwords before going live!
 
-To learn more about Next.js, take a look at the following resources:
+### Production Build
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm run start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Cloudflare Tunnel Setup
+See Section 8 of the project spec for detailed Cloudflare Named Tunnel setup instructions to expose the app securely to your team.

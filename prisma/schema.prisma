@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         String   // "admin" | "agent"
+  status       String   @default("active") // "active" | "disabled"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedContacts  Contact[]      @relation("AgentContacts")
+  createdContacts   Contact[]      @relation("CreatedContacts")
+  calls             Call[]
+  activities        Activity[]
+  notifications     Notification[] @relation("ReceivedNotifications")
+  sentNotifications Notification[] @relation("SentNotifications")
+}
+
+model Contact {
+  id              String   @id @default(cuid())
+  name            String
+  phone           String
+  email           String?
+  company         String?
+  source          String?
+  status          String   @default("new") // new|queued|contacted|follow_up|converted|lost
+  assignedAgentId String?
+  topic           String?
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  assignedAgent User?      @relation("AgentContacts", fields: [assignedAgentId], references: [id])
+  createdBy     User       @relation("CreatedContacts", fields: [createdById], references: [id])
+  calls         Call[]
+  activities    Activity[]
+}
+
+model Call {
+  id             String   @id @default(cuid())
+  contactId      String
+  agentId        String
+  callTime       DateTime @default(now())
+  outcome        String   // connected|no_answer|busy|wrong_number|not_interested|callback_requested
+  interestLevel  String?  // hot|warm|cold
+  feedbackNotes  String?
+  createdAt      DateTime @default(now())
+
+  contact    Contact    @relation(fields: [contactId], references: [id])
+  agent      User       @relation(fields: [agentId], references: [id])
+  activities Activity[]
+}
+
+model Activity {
+  id           String    @id @default(cuid())
+  contactId    String
+  agentId      String
+  callId       String?
+  activityType String    // call|email|meeting
+  dueDate      DateTime
+  status       String    @default("pending") // pending|completed|overdue
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  contact Contact @relation(fields: [contactId], references: [id])
+  agent   User    @relation(fields: [agentId], references: [id])
+  call    Call?   @relation(fields: [callId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // overdue_reminder|assignment|admin_nudge|system
+  message   String
+  relatedId String?
+  isRead    Boolean  @default(false)
+  sentById  String?
+  createdAt DateTime @default(now())
+
+  user   User  @relation("ReceivedNotifications", fields: [userId], references: [id])
+  sentBy User? @relation("SentNotifications", fields: [sentById], references: [id])
+}
