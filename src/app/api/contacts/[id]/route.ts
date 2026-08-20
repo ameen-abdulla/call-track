@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const contact = await prisma.contact.findUnique({
     where: { id },
     include: {
-      assignedAgent: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true } },
       calls: { orderBy: { callTime: 'desc' }, include: { agent: { select: { name: true } } } },
       activities: { orderBy: { dueDate: 'asc' }, include: { agent: { select: { name: true } } } },
     },
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // Agents can only see their own contacts
-  if (session!.user.role === 'agent' && contact.assignedAgentId !== session!.user.id) {
+  if (session!.user.role === 'FREELANCER' && contact.assignedToId !== session!.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   return NextResponse.json(contact)
@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const contact = await prisma.contact.findUnique({ where: { id } })
   if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (session!.user.role === 'agent' && contact.assignedAgentId !== session!.user.id) {
+  if (session!.user.role === 'FREELANCER' && contact.assignedToId !== session!.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

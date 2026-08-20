@@ -12,7 +12,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const contact = await prisma.contact.update({
     where: { id },
-    data: { assignedAgentId: agentId, topic, status: 'queued' },
+    data: { assignedToId: agentId, topic, status: 'queued' },
   })
 
   // Create assignment notification

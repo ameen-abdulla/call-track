@@ -21,7 +21,7 @@ export async function GET() {
     }),
     // Queued contacts (assigned but not yet called)
     prisma.contact.findMany({
-      where: { assignedAgentId: agentId, status: { in: ['queued', 'new'] } },
+      where: { assignedToId: agentId, status: { in: ['queued', 'new'] } },
       orderBy: { updatedAt: 'desc' },
     }),
     // Follow-ups due (overdue activities)

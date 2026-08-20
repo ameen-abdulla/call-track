@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const overdue = searchParams.get('overdue') === 'true'
 
   const where: Record<string, unknown> = {}
-  if (session!.user.role === 'agent') {
+  if (session!.user.role === 'FREELANCER') {
     where.agentId = session!.user.id
   } else if (agentId) {
     where.agentId = agentId

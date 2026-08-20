@@ -6,24 +6,38 @@ export default auth((req) => {
   const session = req.auth
 
   // Public routes
-  if (pathname === '/login' || pathname.startsWith('/api/auth')) {
-    if (session && pathname === '/login') {
-      const dest = session.user.role === 'admin' ? '/admin' : '/secretary'
+  const isPublic =
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/auth/register')
+
+  if (isPublic) {
+    if (session && (pathname === '/login' || pathname === '/register')) {
+      const dest = session.user.role === 'ADMIN' ? '/admin' : '/freelancer'
       return NextResponse.redirect(new URL(dest, req.url))
     }
     return NextResponse.next()
   }
 
-  // Protected routes
+  // Not logged in
   if (!session) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  // Role-based routing
-  if (pathname.startsWith('/admin') && session.user.role !== 'admin') {
-    return NextResponse.redirect(new URL('/secretary', req.url))
+  // Block non-approved freelancers on every protected route
+  if (
+    session.user.role === 'FREELANCER' &&
+    session.user.freelancerStatus !== 'APPROVED'
+  ) {
+    return NextResponse.redirect(new URL('/login?error=account_status', req.url))
   }
-  if (pathname.startsWith('/secretary') && session.user.role !== 'agent') {
+
+  // Role-based routing
+  if (pathname.startsWith('/admin') && session.user.role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/freelancer', req.url))
+  }
+  if (pathname.startsWith('/freelancer') && session.user.role !== 'FREELANCER') {
     return NextResponse.redirect(new URL('/admin', req.url))
   }
 

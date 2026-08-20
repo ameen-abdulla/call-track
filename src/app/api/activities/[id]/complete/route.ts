@@ -9,7 +9,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const activity = await prisma.activity.findUnique({ where: { id } })
   if (!activity) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (session!.user.role === 'agent' && activity.agentId !== session!.user.id) {
+  if (session!.user.role === 'FREELANCER' && activity.agentId !== session!.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

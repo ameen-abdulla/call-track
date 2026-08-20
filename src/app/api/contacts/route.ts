@@ -13,10 +13,10 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {}
   // Agents can only see their own contacts
-  if (session!.user.role === 'agent') {
-    where.assignedAgentId = session!.user.id
+  if (session!.user.role === 'FREELANCER') {
+    where.assignedToId = session!.user.id
   } else if (agentId) {
-    where.assignedAgentId = agentId
+    where.assignedToId = agentId
   }
   if (status) where.status = status
   if (search) {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   const contacts = await prisma.contact.findMany({
     where,
-    include: { assignedAgent: { select: { id: true, name: true } } },
+    include: { assignedTo: { select: { id: true, name: true } } },
     orderBy: { createdAt: 'desc' },
   })
   return NextResponse.json(contacts)

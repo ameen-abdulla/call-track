@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   // Verify agent owns this contact (unless admin)
   const contact = await prisma.contact.findUnique({ where: { id: contactId } })
   if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
-  if (session!.user.role === 'agent' && contact.assignedAgentId !== session!.user.id) {
+  if (session!.user.role === 'FREELANCER' && contact.assignedToId !== session!.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

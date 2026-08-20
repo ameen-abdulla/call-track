@@ -17,7 +17,7 @@ export async function GET() {
     prisma.activity.count({ where: { status: 'overdue' } }),
     prisma.contact.count({ where: { status: 'converted' } }),
     prisma.user.findMany({
-      where: { role: 'agent', status: 'active' },
+      where: { role: 'FREELANCER', freelancerStatus: 'APPROVED' },
       select: { id: true, name: true },
     }),
   ])

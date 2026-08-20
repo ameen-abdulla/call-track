@@ -6,8 +6,17 @@ export async function requireAuth(requiredRole?: string) {
   if (!session) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), session: null }
   }
-  if (requiredRole && session.user.role !== requiredRole) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }), session: null }
+  if (requiredRole) {
+    const normalizedRole =
+      requiredRole.toUpperCase() === 'ADMIN'
+        ? 'ADMIN'
+        : requiredRole.toUpperCase() === 'AGENT' || requiredRole.toUpperCase() === 'FREELANCER'
+        ? 'FREELANCER'
+        : requiredRole
+
+    if (session.user.role !== normalizedRole) {
+      return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }), session: null }
+    }
   }
   return { error: null, session }
 }
