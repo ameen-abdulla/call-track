@@ -1,6 +1,6 @@
 @echo off
 title Call Track — Starting...
-cd /d "%~dp0call-track"
+cd /d "%~dp0"
 
 echo.
 echo  ============================
@@ -11,7 +11,7 @@ echo.
 REM ── Check if Node.js is installed ──────────────────────────────────
 node --version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo  ⚠  Node.js is not installed on this computer.
+    echo  Node.js is not installed on this computer.
     echo.
     echo  Please follow these steps:
     echo.
@@ -32,18 +32,25 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b
 )
 
-REM ── First-time setup ───────────────────────────────────────────────
-if not exist ".next" (
-    echo  First-time setup — this runs once and takes 2-3 minutes.
-    echo  Please wait and do not close this window...
+REM ── Install packages if node_modules is missing ────────────────────
+if not exist "node_modules" (
+    echo  Installing packages for the first time...
+    echo  This takes 1-2 minutes. Please wait.
     echo.
     call npm install
+    echo.
+)
+
+REM ── First-time setup: build + seed database ────────────────────────
+if not exist ".next" (
+    echo  First-time setup — building the app and setting up database...
+    echo  This takes 2-3 minutes. Please wait and do not close this window.
     echo.
     call npm run db:push
     call npm run db:seed
     call npm run build
     echo.
-    echo  ✔ Setup complete!
+    echo  Setup complete!
     echo.
 )
 
