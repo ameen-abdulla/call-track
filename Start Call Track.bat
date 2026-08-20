@@ -38,17 +38,42 @@ if not exist "node_modules" (
     echo  This takes 1-2 minutes. Please wait.
     echo.
     call npm install
+    if %ERRORLEVEL% NEQ 0 (
+        echo.
+        echo  ERROR: npm install failed. Please check your internet connection and try again.
+        pause
+        exit /b
+    )
     echo.
 )
 
-REM ── First-time setup: build + seed database ────────────────────────
+REM ── First-time setup: generate client, push DB, seed, build ────────
 if not exist ".next" (
     echo  First-time setup — building the app and setting up database...
     echo  This takes 2-3 minutes. Please wait and do not close this window.
     echo.
-    call npm run db:push
+
+    echo  [1/4] Generating Prisma client...
+    call npx prisma generate
+    if %ERRORLEVEL% NEQ 0 ( echo  ERROR: prisma generate failed. & pause & exit /b )
+
+    echo  [2/4] Setting up database...
+    call npx prisma db push
+    if %ERRORLEVEL% NEQ 0 ( echo  ERROR: db push failed. & pause & exit /b )
+
+    echo  [3/4] Seeding database with sample data...
     call npm run db:seed
+    if %ERRORLEVEL% NEQ 0 ( echo  ERROR: db seed failed. & pause & exit /b )
+
+    echo  [4/4] Building the app...
     call npm run build
+    if %ERRORLEVEL% NEQ 0 (
+        echo.
+        echo  ERROR: Build failed. Please contact your developer.
+        pause
+        exit /b
+    )
+
     echo.
     echo  Setup complete!
     echo.

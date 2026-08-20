@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     wrong_number: 'queued',
   }
 
-  const [call] = await prisma.$transaction(async (tx) => {
+  const [call] = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const call = await tx.call.create({
       data: {
         contactId,
