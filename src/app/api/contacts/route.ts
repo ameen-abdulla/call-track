@@ -8,37 +8,57 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
-  const agentId = searchParams.get('agent_id')
-  const search = searchParams.get('search')
+  const agentId = searchParams.get('agent_id') || searchParams.get('assignedToId')
+  const assignment = searchParams.get('assignment') // 'all' | 'assigned' | 'unassigned' | specific freelancer ID
+  const search = searchParams.get('search')?.trim()
   const tagId = searchParams.get('tagId') || searchParams.get('tag')
   const callPriority = searchParams.get('callPriority') || searchParams.get('priority')
 
-  const baseWhere = session!.user.role === 'FREELANCER'
-    ? { assignedToId: session!.user.id }
-    : (agentId ? { assignedToId: agentId } : {})
+  let baseWhere: Record<string, unknown> = {}
 
-  // merge baseWhere with any search/status filters
-  const where = {
+  if (session!.user.role === 'FREELANCER') {
+    baseWhere = { assignedToId: session!.user.id }
+  } else {
+    // Admin filtering
+    if (assignment === 'unassigned') {
+      baseWhere = { assignedToId: null }
+    } else if (assignment === 'assigned') {
+      baseWhere = { assignedToId: { not: null } }
+    } else if (assignment && assignment !== 'all') {
+      baseWhere = { assignedToId: assignment }
+    } else if (agentId) {
+      baseWhere = { assignedToId: agentId }
+    }
+  }
+
+  // merge baseWhere with search/status/tag/priority filters
+  const where: Record<string, unknown> = {
     ...baseWhere,
-    ...(search ? {
-      OR: [
-        { name: { contains: search } },
-        { phone: { contains: search } },
-        { phone2: { contains: search } },
-        { company: { contains: search } },
-        { email: { contains: search } },
-      ],
-    } : {}),
     ...(status ? { status } : {}),
     ...(tagId ? { tags: { some: { tagId } } } : {}),
     ...(callPriority ? { callPriority } : {}),
+  }
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search } },
+      { phone: { contains: search } },
+      { phone2: { contains: search } },
+      { company: { contains: search } },
+      { email: { contains: search } },
+      { source: { contains: search } },
+      { topic: { contains: search } },
+      { assignedTo: { name: { contains: search } } },
+      { tags: { some: { tag: { name: { contains: search } } } } },
+    ]
   }
 
   const contacts = await prisma.contact.findMany({
     where,
     include: {
       tags: { include: { tag: true } },
-      assignedTo: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true, email: true, freelancerStatus: true } },
+      _count: { select: { calls: true } },
     },
     orderBy: [{ callPriority: 'asc' }, { updatedAt: 'desc' }],
   })
@@ -51,7 +71,7 @@ export async function POST(req: NextRequest) {
   if (error) return error
 
   const body = await req.json()
-  const { name, phone, phone2, email, company, source, status, topic, callPriority } = body
+  const { name, phone, phone2, email, company, source, status, topic, callPriority, assignedToId, tagIds } = body
 
   if (!name || !phone) {
     return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 })
@@ -65,10 +85,20 @@ export async function POST(req: NextRequest) {
       email,
       company,
       source,
-      status: status || 'new',
+      status: status || (assignedToId ? 'queued' : 'new'),
       topic,
       callPriority: callPriority || null,
+      assignedToId: assignedToId || null,
       createdById: session!.user.id,
+      ...(tagIds && Array.isArray(tagIds) && tagIds.length > 0 ? {
+        tags: {
+          create: tagIds.map((tId: string) => ({ tagId: tId })),
+        },
+      } : {}),
+    },
+    include: {
+      tags: { include: { tag: true } },
+      assignedTo: { select: { id: true, name: true } },
     },
   })
   return NextResponse.json(contact, { status: 201 })

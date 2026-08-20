@@ -10,7 +10,14 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const role = searchParams.get('role')
-  const where = role ? { role: role.toUpperCase() as UserRole } : {}
+  let normalizedRole: UserRole | undefined
+  if (role) {
+    const r = role.toUpperCase()
+    if (r === 'ADMIN') normalizedRole = UserRole.ADMIN
+    else if (['FREELANCER', 'AGENT', 'SECRETARY'].includes(r)) normalizedRole = UserRole.FREELANCER
+  }
+
+  const where = normalizedRole ? { role: normalizedRole } : {}
 
   const users = await prisma.user.findMany({
     where,
@@ -23,6 +30,7 @@ export async function GET(req: NextRequest) {
       freelancerStatus: true,
       createdAt: true,
     },
+    orderBy: { name: 'asc' },
   })
   return NextResponse.json(users)
 }

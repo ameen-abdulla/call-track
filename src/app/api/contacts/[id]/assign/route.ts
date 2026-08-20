@@ -8,20 +8,42 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
 
   const body = await req.json()
-  const agentId = body.agentId || body.toUserId
+  const agentId = body.agentId ?? body.toUserId
   const topic = body.topic
-
-  if (!agentId) return NextResponse.json({ error: 'agentId required' }, { status: 400 })
 
   const existingContact = await prisma.contact.findUnique({ where: { id } })
   if (!existingContact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
 
   const previousAssigneeId = existingContact.assignedToId
 
+  // Handle unassign
+  if (!agentId || agentId === 'unassigned' || agentId === 'none') {
+    const contact = await prisma.$transaction(async (tx) => {
+      const updated = await tx.contact.update({
+        where: { id },
+        data: { assignedToId: null, topic: topic !== undefined ? topic : existingContact.topic, status: 'new' },
+      })
+
+      await tx.assignmentHistory.create({
+        data: {
+          contactId: id,
+          fromUserId: previousAssigneeId,
+          toUserId: null,
+          changedById: session!.user.id,
+          reason: 'admin_unassigned',
+        },
+      })
+
+      return updated
+    })
+    return NextResponse.json(contact)
+  }
+
+  // Handle assign / reassign
   const contact = await prisma.$transaction(async (tx) => {
     const updated = await tx.contact.update({
       where: { id },
-      data: { assignedToId: agentId, topic, status: 'queued' },
+      data: { assignedToId: agentId, topic: topic !== undefined ? topic : existingContact.topic, status: 'queued' },
     })
 
     await tx.assignmentHistory.create({
@@ -30,7 +52,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         fromUserId: previousAssigneeId,
         toUserId: agentId,
         changedById: session!.user.id,
-        reason: 'agent_assigned',
+        reason: previousAssigneeId ? 'admin_reassigned' : 'admin_assigned',
       },
     })
 

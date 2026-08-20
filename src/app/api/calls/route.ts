@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   if (error) return error
 
   const body = await req.json()
-  const { contactId, outcome, interestLevel, feedbackNotes, nextActivity } = body
+  const { contactId, outcome, responseLookup, recommendedAction, interestLevel, feedbackNotes, nextActivity } = body
 
   if (!contactId || !outcome) {
     return NextResponse.json({ error: 'contactId and outcome required' }, { status: 400 })
@@ -21,14 +21,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Map outcome to contact status
-  const statusMap: Record<string, string> = {
-    connected: 'contacted',
-    callback_requested: 'follow_up',
-    not_interested: 'lost',
-    no_answer: 'queued',
-    busy: 'queued',
-    wrong_number: 'queued',
+  // Map outcome and responseLookup to contact status
+  let newStatus = 'contacted'
+  if (responseLookup === 'Not Interested' || outcome === 'not_interested') {
+    newStatus = 'lost'
+  } else if (responseLookup === 'Interested – Request Demo' || responseLookup === 'Interested – Request Quotation') {
+    newStatus = 'converted'
+  } else if (responseLookup === 'Call Back Later' || outcome === 'callback_requested') {
+    newStatus = 'follow_up'
+  } else if (['no_answer', 'busy', 'wrong_number'].includes(outcome)) {
+    newStatus = 'queued'
+  } else if (responseLookup) {
+    newStatus = 'follow_up'
   }
 
   const [call] = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -37,6 +41,8 @@ export async function POST(req: NextRequest) {
         contactId,
         agentId: session!.user.id,
         outcome,
+        responseLookup: responseLookup || null,
+        recommendedAction: recommendedAction || null,
         interestLevel: interestLevel || null,
         feedbackNotes: feedbackNotes || null,
       },
@@ -44,10 +50,10 @@ export async function POST(req: NextRequest) {
 
     await tx.contact.update({
       where: { id: contactId },
-      data: { status: statusMap[outcome] || 'contacted' },
+      data: { status: newStatus },
     })
 
-    if (nextActivity) {
+    if (nextActivity && nextActivity.dueDate) {
       await tx.activity.create({
         data: {
           contactId,

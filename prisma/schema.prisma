@@ -104,14 +104,16 @@ model AssignmentHistory {
 }
 
 model Call {
-  id            String   @id @default(cuid())
-  contactId     String
-  agentId       String
-  callTime      DateTime @default(now())
-  outcome       String
-  interestLevel String?
-  feedbackNotes String?
-  createdAt     DateTime @default(now())
+  id                String   @id @default(cuid())
+  contactId         String
+  agentId           String
+  callTime          DateTime @default(now())
+  outcome           String
+  responseLookup    String?
+  recommendedAction String?
+  interestLevel     String?
+  feedbackNotes     String?
+  createdAt         DateTime @default(now())
 
   contact    Contact    @relation(fields: [contactId], references: [id])
   agent      User       @relation(fields: [agentId], references: [id])
