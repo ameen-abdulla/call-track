@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, UserRole, FreelancerStatus } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -7,7 +7,6 @@ const prisma = new PrismaClient()
 
 function extractEmail(value: string): string | null {
   if (!value) return null
-  // If contains @, extract the email part
   const parts = value.split(/[;,\s]+/)
   const emailPart = parts.find(p => p.includes('@'))
   return emailPart ? emailPart.trim() : null
@@ -17,60 +16,58 @@ function parseCSV(content: string): Record<string, string>[] {
   const lines = content.replace(/\r/g, '').split('\n').filter(l => l.trim())
   const headers = lines[0].split(',')
   return lines.slice(1).map(line => {
-    // Handle commas inside quoted fields
     const values: string[] = []
     let current = ''
     let inQuotes = false
     for (const char of line) {
-      if (char === '"') {
-        inQuotes = !inQuotes
-      } else if (char === ',' && !inQuotes) {
-        values.push(current.trim())
-        current = ''
-      } else {
-        current += char
-      }
+      if (char === '"') { inQuotes = !inQuotes }
+      else if (char === ',' && !inQuotes) { values.push(current.trim()); current = '' }
+      else { current += char }
     }
     values.push(current.trim())
     const row: Record<string, string> = {}
-    headers.forEach((h, i) => { row[h.trim()] = values[i] || '' })
+    headers.forEach((h, i) => { row[h.trim()] = values[i] ?? '' })
     return row
   })
 }
 
 async function main() {
-  // ── Users ──────────────────────────────────────────────────────────
+  // ── Users ──────────────────────────────────────────────────────────────
   const adminHash = await bcrypt.hash('admin123', 10)
-  const secretaryHash = await bcrypt.hash('secretary123', 10)
+  const freelancerHash = await bcrypt.hash('freelancer123', 10)
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@calltrack.local' },
     update: {},
-    create: { name: 'Admin User', email: 'admin@calltrack.local', passwordHash: adminHash, role: 'admin', status: 'active' },
+    create: {
+      name: 'Admin User',
+      email: 'admin@calltrack.local',
+      passwordHash: adminHash,
+      role: UserRole.ADMIN,
+      freelancerStatus: null,
+    },
   })
 
-  const secretary = await prisma.user.upsert({
-    where: { email: 'secretary@calltrack.local' },
+  const freelancer = await prisma.user.upsert({
+    where: { email: 'freelancer@calltrack.local' },
     update: {},
-    create: { name: 'Sarah Secretary', email: 'secretary@calltrack.local', passwordHash: secretaryHash, role: 'agent', status: 'active' },
+    create: {
+      name: 'Sarah Freelancer',
+      email: 'freelancer@calltrack.local',
+      passwordHash: freelancerHash,
+      role: UserRole.FREELANCER,
+      freelancerStatus: FreelancerStatus.APPROVED,
+      appliedAt: new Date(),
+      reviewedAt: new Date(),
+      reviewedById: null,
+    },
   })
 
-  // ── Clear existing data (FK order) ─────────────────────────────────
-  await prisma.notification.deleteMany()
-  await prisma.activity.deleteMany()
-  await prisma.call.deleteMany()
-  await prisma.contact.deleteMany()
-  console.log('Cleared existing contacts, calls, activities, notifications.')
-
-  // ── Read CSV ───────────────────────────────────────────────────────
-  // Try in-repo path, relative paths, then absolute
+  // ── Read CSV ───────────────────────────────────────────────────────────
   const csvPaths = [
     path.join(__dirname, 'qatar_education_prospect_master_list.csv'),
-    path.join(__dirname, '../prisma/qatar_education_prospect_master_list.csv'),
     path.join(process.cwd(), 'prisma/qatar_education_prospect_master_list.csv'),
     'D:/FamCode/Call Tracker/Sample CSV/qatar_education_prospect_master_list.csv',
-    path.join(__dirname, '../../Sample CSV/qatar_education_prospect_master_list.csv'),
-    path.join(process.cwd(), '../Sample CSV/qatar_education_prospect_master_list.csv'),
   ]
 
   let csvContent: string | null = null
@@ -81,15 +78,25 @@ async function main() {
       break
     }
   }
-
-  if (!csvContent) {
-    throw new Error('CSV file not found. Tried: ' + csvPaths.join(', '))
-  }
+  if (!csvContent) throw new Error('CSV not found. Tried: ' + csvPaths.join(', '))
 
   const rows = parseCSV(csvContent)
-  console.log(`Parsed ${rows.length} rows from CSV`)
+  console.log(`Parsed ${rows.length} rows`)
 
-  // ── Create contacts ────────────────────────────────────────────────
+  // ── Create Tags from distinct `tag` column values ──────────────────────
+  const distinctTags = [...new Set(rows.map(r => r['tag']?.trim()).filter(Boolean))]
+  const tagMap: Record<string, string> = {}
+  for (const tagName of distinctTags) {
+    const tag = await prisma.tag.upsert({
+      where: { name: tagName },
+      update: {},
+      create: { name: tagName },
+    })
+    tagMap[tagName] = tag.id
+  }
+  console.log(`Created ${distinctTags.length} tags:`, distinctTags)
+
+  // ── Create Contacts ────────────────────────────────────────────────────
   let created = 0
   for (const row of rows) {
     const name = row['school_name']?.trim()
@@ -98,10 +105,11 @@ async function main() {
 
     const phone2 = row['mobile_whatsapp']?.trim() || null
     const email = extractEmail(row['public_business_contact'] || '')
+    const source = row['source']?.trim() || null  // actual source column
+    const callPriority = row['call_priority']?.trim() || null
+    const tagName = row['tag']?.trim() || ''
     const targetRole = row['target_role']?.trim() || ''
     const decisionMaker = row['decision_maker_name']?.trim() || ''
-    const priority = row['call_priority']?.trim()
-    const tag = row['tag']?.trim() || ''
 
     let topic = ''
     if (decisionMaker) {
@@ -110,29 +118,53 @@ async function main() {
       topic = `Target role: ${targetRole}`
     }
 
-    const status = priority === 'B' ? 'new' : 'queued'
-    const assignedAgentId = status === 'queued' ? secretary.id : null
+    const status = callPriority === 'B' ? 'new' : 'queued'
+    const assignedToId = status === 'queued' ? freelancer.id : null
 
-    await prisma.contact.create({
+    const contact = await prisma.contact.create({
       data: {
         name,
         phone,
         phone2,
         email,
         company: name,
-        source: tag,
+        source,
+        callPriority,
         status,
         topic: topic || null,
-        assignedAgentId,
+        assignedToId,
         createdById: admin.id,
       },
     })
+
+    // ── Attach tag via ContactTag ──────────────────────────────────────
+    if (tagName && tagMap[tagName]) {
+      await prisma.contactTag.create({
+        data: { contactId: contact.id, tagId: tagMap[tagName] },
+      })
+    }
+
+    // ── Create AssignmentHistory for initial assignment ────────────────
+    if (assignedToId) {
+      await prisma.assignmentHistory.create({
+        data: {
+          contactId: contact.id,
+          fromUserId: null,
+          toUserId: assignedToId,
+          changedById: admin.id,
+          reason: 'initial_seed',
+        },
+      })
+    }
+
     created++
   }
 
-  console.log(`✅ Seeded: 1 admin, 1 secretary, ${created} contacts from CSV`)
-  console.log('   admin@calltrack.local / admin123')
-  console.log('   secretary@calltrack.local / secretary123')
+  console.log(`✅ Seeded:`)
+  console.log(`   1 admin: admin@calltrack.local / admin123`)
+  console.log(`   1 freelancer: freelancer@calltrack.local / freelancer123`)
+  console.log(`   ${created} contacts from CSV`)
+  console.log(`   ${distinctTags.length} tags: ${distinctTags.join(', ')}`)
 }
 
 main()

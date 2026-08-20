@@ -7,55 +7,111 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  phone        String?
-  passwordHash String
-  role         String   // "admin" | "agent"
-  status       String   @default("active") // "active" | "disabled"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum UserRole {
+  ADMIN
+  FREELANCER
+}
 
-  assignedContacts  Contact[]      @relation("AgentContacts")
-  createdContacts   Contact[]      @relation("CreatedContacts")
+enum FreelancerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  phone            String?
+  passwordHash     String
+  role             UserRole          @default(FREELANCER)
+  freelancerStatus FreelancerStatus? // null for ADMIN users
+  applicationNote  String?
+  appliedAt        DateTime?
+  reviewedAt       DateTime?
+  reviewedById     String?
+  suspendedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  reviewedBy        User?               @relation("Reviewer", fields: [reviewedById], references: [id])
+  reviewsGiven      User[]              @relation("Reviewer")
+  assignedContacts  Contact[]           @relation("AssignedTo")
+  createdContacts   Contact[]           @relation("CreatedContacts")
   calls             Call[]
   activities        Activity[]
-  notifications     Notification[] @relation("ReceivedNotifications")
-  sentNotifications Notification[] @relation("SentNotifications")
+  notifications     Notification[]      @relation("ReceivedNotifications")
+  sentNotifications Notification[]      @relation("SentNotifications")
+  assignmentsFrom   AssignmentHistory[] @relation("AssignmentFrom")
+  assignmentsTo     AssignmentHistory[] @relation("AssignmentTo")
+  assignmentsBy     AssignmentHistory[] @relation("AssignmentBy")
 }
 
 model Contact {
-  id              String   @id @default(cuid())
-  name            String
-  phone           String
-  phone2          String?
-  email           String?
-  company         String?
-  source          String?
-  status          String   @default("new") // new|queued|contacted|follow_up|converted|lost
-  assignedAgentId String?
-  topic           String?
-  createdById     String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  phone        String
+  phone2       String?
+  email        String?
+  company      String?
+  source       String?  // actual source e.g. "MOI + official website"
+  callPriority String?  // from CSV call_priority: "A" | "B"
+  status       String   @default("new") // new|queued|contacted|follow_up|converted|lost
+  assignedToId String?
+  topic        String?
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  assignedAgent User?      @relation("AgentContacts", fields: [assignedAgentId], references: [id])
-  createdBy     User       @relation("CreatedContacts", fields: [createdById], references: [id])
-  calls         Call[]
-  activities    Activity[]
+  assignedTo  User?               @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy   User                @relation("CreatedContacts", fields: [createdById], references: [id])
+  calls       Call[]
+  activities  Activity[]
+  tags        ContactTag[]
+  assignments AssignmentHistory[]
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  createdAt DateTime     @default(now())
+  contacts  ContactTag[]
+}
+
+model ContactTag {
+  contactId String
+  tagId     String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+}
+
+model AssignmentHistory {
+  id          String   @id @default(cuid())
+  contactId   String
+  fromUserId  String?
+  toUserId    String?
+  changedById String
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  contact   Contact @relation(fields: [contactId], references: [id])
+  fromUser  User?   @relation("AssignmentFrom", fields: [fromUserId], references: [id])
+  toUser    User?   @relation("AssignmentTo", fields: [toUserId], references: [id])
+  changedBy User    @relation("AssignmentBy", fields: [changedById], references: [id])
 }
 
 model Call {
-  id             String   @id @default(cuid())
-  contactId      String
-  agentId        String
-  callTime       DateTime @default(now())
-  outcome        String   // connected|no_answer|busy|wrong_number|not_interested|callback_requested
-  interestLevel  String?  // hot|warm|cold
-  feedbackNotes  String?
-  createdAt      DateTime @default(now())
+  id            String   @id @default(cuid())
+  contactId     String
+  agentId       String
+  callTime      DateTime @default(now())
+  outcome       String
+  interestLevel String?
+  feedbackNotes String?
+  createdAt     DateTime @default(now())
 
   contact    Contact    @relation(fields: [contactId], references: [id])
   agent      User       @relation(fields: [agentId], references: [id])
@@ -67,21 +123,21 @@ model Activity {
   contactId    String
   agentId      String
   callId       String?
-  activityType String    // call|email|meeting
+  activityType String
   dueDate      DateTime
-  status       String    @default("pending") // pending|completed|overdue
+  status       String    @default("pending")
   createdAt    DateTime  @default(now())
   completedAt  DateTime?
 
-  contact Contact @relation(fields: [contactId], references: [id])
-  agent   User    @relation(fields: [agentId], references: [id])
-  call    Call?   @relation(fields: [callId], references: [id])
+  contact Contact  @relation(fields: [contactId], references: [id])
+  agent   User     @relation(fields: [agentId], references: [id])
+  call    Call?    @relation(fields: [callId], references: [id])
 }
 
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // overdue_reminder|assignment|admin_nudge|system
+  type      String
   message   String
   relatedId String?
   isRead    Boolean  @default(false)
