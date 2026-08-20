@@ -7,9 +7,11 @@ interface Contact {
   id: string
   name: string
   phone: string
-  phone2: string | null
+  phone2?: string | null
+  callPriority?: string | null
   company: string | null
   topic: string | null
+  tags?: { tag: { id: string; name: string } }[]
   calls: CallRecord[]
 }
 
@@ -44,7 +46,7 @@ function defaultNextDate(): string {
   return d.toISOString().slice(0, 16)
 }
 
-export default function CallFeedbackPage({ params }: { params: Promise<{ id: string }> }) {
+export default function FreelancerCallPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
   const [contact, setContact] = useState<Contact | null>(null)
@@ -97,7 +99,7 @@ export default function CallFeedbackPage({ params }: { params: Promise<{ id: str
     setSaving(false)
     if (res.ok) {
       setSaved(true)
-      setTimeout(() => router.push('/secretary'), 1200)
+      setTimeout(() => router.push('/freelancer'), 1200)
     }
   }
 
@@ -109,11 +111,16 @@ export default function CallFeedbackPage({ params }: { params: Promise<{ id: str
       {/* Header */}
       <div className="bg-gray-900 border-b border-gray-800 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-gray-800 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors">
+          <button onClick={() => router.push('/freelancer')} className="p-2 rounded-xl hover:bg-gray-800 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-white truncate">{contact.name}</h1>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h1 className="font-bold text-white truncate">{contact.name}</h1>
+              {contact.callPriority && (
+                <span className="text-xs font-bold text-blue-400 ml-1">Priority {contact.callPriority}</span>
+              )}
+            </div>
             {contact.company && <p className="text-xs text-gray-400">{contact.company}</p>}
           </div>
         </div>
@@ -139,6 +146,14 @@ export default function CallFeedbackPage({ params }: { params: Promise<{ id: str
               <Phone className="w-5 h-5" />
               Mobile: {contact.phone2}
             </a>
+          )}
+
+          {contact.tags && contact.tags.length > 0 && (
+            <div className="flex gap-1 flex-wrap mt-2">
+              {contact.tags.map(t => (
+                <span key={t.tag.id} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">{t.tag.name}</span>
+              ))}
+            </div>
           )}
 
           {contact.topic && (

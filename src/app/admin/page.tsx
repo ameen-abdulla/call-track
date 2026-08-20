@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
+import Link from 'next/link'
 import { Users, Phone, TrendingUp, AlertCircle, Upload, UserPlus, Bell, Pencil } from 'lucide-react'
 import { NotificationBell } from '@/components/notification-bell'
 
@@ -10,6 +11,12 @@ interface KPIs {
   callsToday: number
   conversionRate: number
   overdueFollowUps: number
+  pendingFreelancers?: number
+}
+
+interface Tag {
+  id: string
+  name: string
 }
 
 interface Contact {
@@ -22,7 +29,10 @@ interface Contact {
   source: string | null
   status: string
   topic: string | null
-  assignedAgent: { id: string; name: string } | null
+  callPriority?: string | null
+  tags?: { tag: { id: string; name: string } }[]
+  assignedTo?: { id: string; name: string } | null
+  assignedAgent?: { id: string; name: string } | null
 }
 
 interface OverdueActivity {
@@ -51,11 +61,15 @@ export default function AdminDashboard() {
   const { data: session } = useSession()
   const [tab, setTab] = useState<'contacts' | 'overdue' | 'performance'>('contacts')
   const [kpis, setKpis] = useState<KPIs | null>(null)
+  const [pendingFreelancers, setPendingFreelancers] = useState<number>(0)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [overdueList, setOverdueList] = useState<OverdueActivity[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterPriority, setFilterPriority] = useState('')
+  const [filterTag, setFilterTag] = useState('')
   const [loading, setLoading] = useState(true)
 
   // Modals
@@ -81,23 +95,33 @@ export default function AdminDashboard() {
     let ignore = false
     async function loadData() {
       try {
-        const [dashRes, contactsRes, agentsRes] = await Promise.all([
+        const queryParams = new URLSearchParams()
+        if (search) queryParams.set('search', search)
+        if (filterStatus) queryParams.set('status', filterStatus)
+        if (filterPriority) queryParams.set('callPriority', filterPriority)
+        if (filterTag) queryParams.set('tagId', filterTag)
+
+        const [dashRes, contactsRes, agentsRes, tagsRes] = await Promise.all([
           fetch('/api/admin/dashboard'),
-          fetch(`/api/contacts?search=${encodeURIComponent(search)}&${filterStatus ? `status=${filterStatus}` : ''}`),
+          fetch(`/api/contacts?${queryParams.toString()}`),
           fetch('/api/users?role=agent'),
+          fetch('/api/admin/tags'),
         ])
-        const [dash, contactsData, agentsData] = await Promise.all([
+        const [dash, contactsData, agentsData, tagsData] = await Promise.all([
           dashRes.json(),
           contactsRes.json(),
           agentsRes.json(),
+          tagsRes.json(),
         ])
         if (!ignore) {
-          if (dash && dash.kpis) {
-            setKpis(dash.kpis)
-            setOverdueList(dash.overdueList || [])
+          if (dash) {
+            if (dash.kpis) setKpis(dash.kpis)
+            if (dash.overdueList) setOverdueList(dash.overdueList || [])
+            setPendingFreelancers(dash.pendingFreelancers ?? dash.kpis?.pendingFreelancers ?? 0)
           }
           if (Array.isArray(agentsData)) setAgents(agentsData)
           if (Array.isArray(contactsData)) setContacts(contactsData)
+          if (Array.isArray(tagsData)) setTags(tagsData)
         }
       } catch (e) {
         console.error('Error fetching admin data:', e)
@@ -110,7 +134,7 @@ export default function AdminDashboard() {
     return () => {
       ignore = true
     }
-  }, [search, filterStatus, refreshKey])
+  }, [search, filterStatus, filterPriority, filterTag, refreshKey])
 
   const refreshAll = () => setRefreshKey(k => k + 1)
 

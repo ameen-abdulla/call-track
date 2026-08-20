@@ -13,6 +13,9 @@ interface Contact {
   topic: string | null
   status: string
   company: string | null
+  callPriority?: string | null
+  tags?: { tag: { id: string; name: string } }[]
+  assignedToId?: string | null
 }
 
 interface Activity {
@@ -35,7 +38,12 @@ function ContactCard({ contact, onCall }: { contact: Contact; onCall: (id: strin
     <div className="bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-800">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-white truncate">{contact.name}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="font-semibold text-white truncate">{contact.name}</p>
+            {contact.callPriority && (
+              <span className="text-xs font-bold text-blue-400 ml-1">Priority {contact.callPriority}</span>
+            )}
+          </div>
           {contact.company && <p className="text-xs text-gray-400 mt-0.5">{contact.company}</p>}
           {contact.topic && (
             <div className="mt-2 bg-blue-950 border border-blue-800 rounded-lg p-2">
@@ -56,11 +64,20 @@ function ContactCard({ contact, onCall }: { contact: Contact; onCall: (id: strin
       {contact.phone2 && (
         <p className="text-sm text-gray-500">📱 {contact.phone2}</p>
       )}
+      {contact.tags && contact.tags.length > 0 && (
+        <div className="flex gap-1 mt-1 flex-wrap">
+          {contact.tags.map(t => (
+            <span key={t.tag.id} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
+              {t.tag.name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-export default function SecretaryDashboard() {
+export default function FreelancerDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
   const [data, setData] = useState<DashboardData | null>(null)
@@ -111,7 +128,7 @@ export default function SecretaryDashboard() {
   }, [])
 
   const handleCall = (contactId: string) => {
-    router.push(`/secretary/call/${contactId}`)
+    router.push(`/freelancer/call/${contactId}`)
   }
 
   const topQueueItem = data?.queue?.[0]
@@ -199,8 +216,25 @@ export default function SecretaryDashboard() {
                     <div key={activity.id} className="bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-800">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-semibold text-white">{activity.contact.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-white">{activity.contact.name}</p>
+                            {activity.contact.callPriority && (
+                              <span className="text-xs font-bold text-blue-400 ml-1">Priority {activity.contact.callPriority}</span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-400">{activity.contact.phone}</p>
+                          {activity.contact.phone2 && (
+                            <p className="text-sm text-gray-400">📱 {activity.contact.phone2}</p>
+                          )}
+                          {activity.contact.tags && activity.contact.tags.length > 0 && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {activity.contact.tags.map(t => (
+                                <span key={t.tag.id} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
+                                  {t.tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {activity.contact.topic && (
                             <div className="mt-2 bg-blue-950 border border-blue-800 rounded-lg p-2">
                               <p className="text-xs font-medium text-blue-300">Topic:</p>
@@ -238,13 +272,28 @@ export default function SecretaryDashboard() {
                     }`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold text-white">{activity.contact.name}</p>
+                            {activity.contact.callPriority && (
+                              <span className="text-xs font-bold text-blue-400">Priority {activity.contact.callPriority}</span>
+                            )}
                             {activity.status === 'overdue' && (
                               <span className="text-xs bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded-full">Overdue</span>
                             )}
                           </div>
                           <p className="text-sm text-gray-400">{activity.contact.phone}</p>
+                          {activity.contact.phone2 && (
+                            <p className="text-sm text-gray-400">📱 {activity.contact.phone2}</p>
+                          )}
+                          {activity.contact.tags && activity.contact.tags.length > 0 && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {activity.contact.tags.map(t => (
+                                <span key={t.tag.id} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
+                                  {t.tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           <p className="text-xs text-gray-500 mt-1">Due: {new Date(activity.dueDate).toLocaleDateString()}</p>
                         </div>
                         <button

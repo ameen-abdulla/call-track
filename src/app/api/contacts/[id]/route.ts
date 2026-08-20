@@ -10,6 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const contact = await prisma.contact.findUnique({
     where: { id },
     include: {
+      tags: { include: { tag: true } },
       assignedTo: { select: { id: true, name: true } },
       calls: { orderBy: { callTime: 'desc' }, include: { agent: { select: { name: true } } } },
       activities: { orderBy: { dueDate: 'asc' }, include: { agent: { select: { name: true } } } },

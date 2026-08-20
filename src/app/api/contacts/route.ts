@@ -10,6 +10,8 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status')
   const agentId = searchParams.get('agent_id')
   const search = searchParams.get('search')
+  const tagId = searchParams.get('tagId') || searchParams.get('tag')
+  const callPriority = searchParams.get('callPriority') || searchParams.get('priority')
 
   const baseWhere = session!.user.role === 'FREELANCER'
     ? { assignedToId: session!.user.id }
@@ -28,6 +30,8 @@ export async function GET(req: NextRequest) {
       ],
     } : {}),
     ...(status ? { status } : {}),
+    ...(tagId ? { tags: { some: { tagId } } } : {}),
+    ...(callPriority ? { callPriority } : {}),
   }
 
   const contacts = await prisma.contact.findMany({

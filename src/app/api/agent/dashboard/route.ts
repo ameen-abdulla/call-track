@@ -16,18 +16,19 @@ export async function GET() {
     // Activities due today
     prisma.activity.findMany({
       where: { agentId, dueDate: { gte: today, lt: tomorrow }, status: { in: ['pending', 'overdue'] } },
-      include: { contact: true },
+      include: { contact: { include: { tags: { include: { tag: true } } } } },
       orderBy: { dueDate: 'asc' },
     }),
     // Queued contacts (assigned but not yet called)
     prisma.contact.findMany({
       where: { assignedToId: agentId, status: { in: ['queued', 'new'] } },
-      orderBy: { updatedAt: 'desc' },
+      include: { tags: { include: { tag: true } } },
+      orderBy: [{ callPriority: 'asc' }, { updatedAt: 'desc' }],
     }),
     // Follow-ups due (overdue activities)
     prisma.activity.findMany({
       where: { agentId, status: { in: ['pending', 'overdue'] }, dueDate: { lte: new Date() } },
-      include: { contact: true },
+      include: { contact: { include: { tags: { include: { tag: true } } } } },
       orderBy: { dueDate: 'asc' },
     }),
     prisma.notification.count({ where: { userId: agentId, isRead: false } }),
