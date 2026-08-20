@@ -1,0 +1,30 @@
+Call Track — Installation Guide
+================================
+
+STEP 1 — Install Docker Desktop (one time only)
+  Go to: https://www.docker.com/products/docker-desktop
+  Download and install it (click Next, Next, Finish)
+  Open Docker Desktop and wait for it to be ready
+  (you will see a whale icon in your taskbar)
+
+STEP 2 — Run the setup (one time only)
+  Right-click the file called "setup.ps1" in this folder
+  Choose "Run with PowerShell"
+  If Windows asks "Do you want to allow this app..." click Yes
+  Wait for it to finish — it takes about 30 seconds
+
+STEP 3 — You are done!
+  Two shortcuts have been created on your Desktop:
+  - "Start Call Track"  — double-click to open the app
+  - "Stop Call Track"   — double-click to shut it down
+
+  The FIRST time you start the app it will take 3-5 minutes
+  to set itself up. After that it starts in about 10 seconds.
+
+Your login details:
+  Admin:     admin@calltrack.local     password: admin123
+  Secretary: secretary@calltrack.local  password: secretary123
+
+  (Change these after first login)
+
+Need help? Contact your developer.

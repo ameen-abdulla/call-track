@@ -9,6 +9,7 @@ interface Contact {
   id: string
   name: string
   phone: string
+  phone2?: string | null
   topic: string | null
   status: string
   company: string | null
@@ -51,7 +52,10 @@ function ContactCard({ contact, onCall }: { contact: Contact; onCall: (id: strin
           Call
         </button>
       </div>
-      <p className="text-sm text-gray-400 mt-2">{contact.phone}</p>
+      <p className="text-sm text-gray-500 mt-2">{contact.phone}</p>
+      {contact.phone2 && (
+        <p className="text-sm text-gray-500">📱 {contact.phone2}</p>
+      )}
     </div>
   )
 }

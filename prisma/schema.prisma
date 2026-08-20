@@ -30,6 +30,7 @@ model Contact {
   id              String   @id @default(cuid())
   name            String
   phone           String
+  phone2          String?
   email           String?
   company         String?
   source          String?

@@ -44,27 +44,32 @@ npm run build
 npm run start
 ```
 
-## Running with Docker Desktop (Recommended for sharing)
+## Installation (Docker Desktop)
 
-This is the easiest way to run Call Track on any Windows, Mac, or Linux machine.
+This is the recommended way to run Call Track — no developer tools needed after setup.
 
-### Prerequisites
-- Install [Docker Desktop](https://www.docker.com/products/docker-desktop) (free)
-- Make sure Docker Desktop is running (whale icon in taskbar)
+### Step 1 — Install Docker Desktop (one time)
+Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop), install, and open it. Wait for the whale icon to appear in your taskbar.
 
-### Start
-Double-click **`Start with Docker.bat`**
+### Step 2 — Run Setup (one time)
+Right-click **`setup.ps1`** → **Run with PowerShell**.
 
-- First run takes 3–5 minutes to build the image
-- Every run after that starts in seconds
-- Browser opens automatically at http://localhost:3000
+This creates two desktop shortcuts:
+- **Start Call Track** — launches the app and opens your browser
+- **Stop Call Track** — shuts it down
 
-### Stop
-Double-click **`Stop Docker.bat`**
+> First launch takes 3–5 minutes to build. Every launch after that takes ~10 seconds.
 
-### Notes
-- Your data (contacts, calls, activities) is stored in a Docker volume and **persists between restarts**
-- Default credentials are the same: `admin@calltrack.local` / `admin123`
+### Default Credentials
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@calltrack.local | admin123 |
+| Secretary | secretary@calltrack.local | secretary123 |
+
+> Change these after first login.
+
+### Data
+All your contacts, calls, and notes are stored in a Docker volume. They persist between restarts and are not affected by updates.
 
 ## Cloudflare Tunnel Setup
 See Section 8 of the project spec for detailed Cloudflare Named Tunnel setup instructions to expose the app securely to your team.

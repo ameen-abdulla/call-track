@@ -7,6 +7,7 @@ interface Contact {
   id: string
   name: string
   phone: string
+  phone2: string | null
   company: string | null
   topic: string | null
   calls: CallRecord[]
@@ -128,6 +129,17 @@ export default function CallFeedbackPage({ params }: { params: Promise<{ id: str
             <Phone className="w-5 h-5" />
             Call {contact.phone}
           </a>
+
+          {/* Second number button (WhatsApp/Mobile) */}
+          {contact.phone2 && (
+            <a
+              href={`tel:${contact.phone2}`}
+              className="flex items-center gap-3 bg-teal-600 text-white px-4 py-3 rounded-xl font-semibold min-h-[52px] hover:bg-teal-700 transition-colors w-full justify-center mt-2"
+            >
+              <Phone className="w-5 h-5" />
+              Mobile: {contact.phone2}
+            </a>
+          )}
 
           {contact.topic && (
             <div className="mt-3 bg-blue-950 border border-blue-800 rounded-xl p-3">

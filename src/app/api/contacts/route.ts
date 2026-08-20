@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
       { name: { contains: search } },
       { company: { contains: search } },
       { phone: { contains: search } },
+      { phone2: { contains: search } },
     ]
   }
 
@@ -40,14 +41,14 @@ export async function POST(req: NextRequest) {
   if (error) return error
 
   const body = await req.json()
-  const { name, phone, email, company, source, status, topic } = body
+  const { name, phone, phone2, email, company, source, status, topic } = body
 
   if (!name || !phone) {
     return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 })
   }
 
   const contact = await prisma.contact.create({
-    data: { name, phone, email, company, source, status: status || 'new', topic, createdById: session!.user.id },
+    data: { name, phone, phone2: phone2 || null, email, company, source, status: status || 'new', topic, createdById: session!.user.id },
   })
   return NextResponse.json(contact, { status: 201 })
 }

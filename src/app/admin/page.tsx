@@ -16,6 +16,7 @@ interface Contact {
   id: string
   name: string
   phone: string
+  phone2: string | null
   email: string | null
   company: string | null
   source: string | null
@@ -66,7 +67,7 @@ export default function AdminDashboard() {
   const [savingAgentName, setSavingAgentName] = useState(false)
 
   // Add contact form
-  const [newContact, setNewContact] = useState({ name: '', phone: '', email: '', company: '', source: '', topic: '' })
+  const [newContact, setNewContact] = useState({ name: '', phone: '', phone2: '', email: '', company: '', source: '', topic: '' })
   const [addingContact, setAddingContact] = useState(false)
 
   // Assign form
@@ -122,7 +123,7 @@ export default function AdminDashboard() {
     })
     setAddingContact(false)
     setShowAddContact(false)
-    setNewContact({ name: '', phone: '', email: '', company: '', source: '', topic: '' })
+    setNewContact({ name: '', phone: '', phone2: '', email: '', company: '', source: '', topic: '' })
     refreshAll()
   }
 
@@ -275,6 +276,9 @@ export default function AdminDashboard() {
                       </div>
                       {contact.company && <p className="text-xs text-gray-400">{contact.company}</p>}
                       <p className="text-sm text-gray-400 mt-0.5">{contact.phone}</p>
+                      {contact.phone2 && (
+                        <p className="text-xs text-gray-500">📱 {contact.phone2}</p>
+                      )}
                       {contact.topic && (
                         <p className="text-xs text-blue-400 mt-1 line-clamp-1">📋 {contact.topic}</p>
                       )}
@@ -388,6 +392,7 @@ export default function AdminDashboard() {
               {[
                 { key: 'name', label: 'Name *', type: 'text', placeholder: 'Full name' },
                 { key: 'phone', label: 'Phone *', type: 'tel', placeholder: '+971...' },
+                { key: 'phone2', label: 'Mobile / WhatsApp (optional)', type: 'tel', placeholder: '+974...' },
                 { key: 'email', label: 'Email', type: 'email', placeholder: 'optional' },
                 { key: 'company', label: 'Company', type: 'text', placeholder: 'optional' },
                 { key: 'source', label: 'Source', type: 'text', placeholder: 'website / referral / campaign' },
@@ -544,6 +549,9 @@ function ContactDetail({ contact }: { contact: Contact }) {
     <div className="p-4 space-y-4">
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div><span className="text-gray-400">Phone</span><p className="font-medium text-white">{contact.phone}</p></div>
+        {contact.phone2 && (
+          <div><span className="text-gray-400">Mobile / WhatsApp</span><p className="font-medium text-white">{contact.phone2}</p></div>
+        )}
         <div><span className="text-gray-400">Company</span><p className="font-medium text-white">{contact.company || '—'}</p></div>
         <div><span className="text-gray-400">Email</span><p className="font-medium text-white">{contact.email || '—'}</p></div>
         <div><span className="text-gray-400">Source</span><p className="font-medium text-white">{contact.source || '—'}</p></div>
@@ -579,4 +587,3 @@ function ContactDetail({ contact }: { contact: Contact }) {
     </div>
   )
 }
-
