@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
 
 export async function GET() {
-  const { error } = await requireAuth('admin')
+  const { error } = await requireAuth('ADMIN')
   if (error) return error
 
   const today = new Date()
@@ -11,7 +11,7 @@ export async function GET() {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const [totalContacts, callsToday, overdueFollowUps, convertedContacts, agents] = await Promise.all([
+  const [totalContacts, callsToday, overdueFollowUps, convertedContacts, agents, pendingFreelancers] = await Promise.all([
     prisma.contact.count(),
     prisma.call.count({ where: { callTime: { gte: today, lt: tomorrow } } }),
     prisma.activity.count({ where: { status: 'overdue' } }),
@@ -19,6 +19,9 @@ export async function GET() {
     prisma.user.findMany({
       where: { role: 'FREELANCER', freelancerStatus: 'APPROVED' },
       select: { id: true, name: true },
+    }),
+    prisma.user.count({
+      where: { role: 'FREELANCER', freelancerStatus: 'PENDING' },
     }),
   ])
 
@@ -35,8 +38,9 @@ export async function GET() {
   })
 
   return NextResponse.json({
-    kpis: { totalContacts, callsToday, conversionRate, overdueFollowUps },
+    kpis: { totalContacts, callsToday, conversionRate, overdueFollowUps, pendingFreelancers },
     overdueList,
     agents,
+    pendingFreelancers,
   })
 }

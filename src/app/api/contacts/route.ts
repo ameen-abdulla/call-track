@@ -11,28 +11,34 @@ export async function GET(req: NextRequest) {
   const agentId = searchParams.get('agent_id')
   const search = searchParams.get('search')
 
-  const where: Record<string, unknown> = {}
-  // Agents can only see their own contacts
-  if (session!.user.role === 'FREELANCER') {
-    where.assignedToId = session!.user.id
-  } else if (agentId) {
-    where.assignedToId = agentId
-  }
-  if (status) where.status = status
-  if (search) {
-    where.OR = [
-      { name: { contains: search } },
-      { company: { contains: search } },
-      { phone: { contains: search } },
-      { phone2: { contains: search } },
-    ]
+  const baseWhere = session!.user.role === 'FREELANCER'
+    ? { assignedToId: session!.user.id }
+    : (agentId ? { assignedToId: agentId } : {})
+
+  // merge baseWhere with any search/status filters
+  const where = {
+    ...baseWhere,
+    ...(search ? {
+      OR: [
+        { name: { contains: search } },
+        { phone: { contains: search } },
+        { phone2: { contains: search } },
+        { company: { contains: search } },
+        { email: { contains: search } },
+      ],
+    } : {}),
+    ...(status ? { status } : {}),
   }
 
   const contacts = await prisma.contact.findMany({
     where,
-    include: { assignedTo: { select: { id: true, name: true } } },
-    orderBy: { createdAt: 'desc' },
+    include: {
+      tags: { include: { tag: true } },
+      assignedTo: { select: { id: true, name: true } },
+    },
+    orderBy: [{ callPriority: 'asc' }, { updatedAt: 'desc' }],
   })
+
   return NextResponse.json(contacts)
 }
 
@@ -41,14 +47,25 @@ export async function POST(req: NextRequest) {
   if (error) return error
 
   const body = await req.json()
-  const { name, phone, phone2, email, company, source, status, topic } = body
+  const { name, phone, phone2, email, company, source, status, topic, callPriority } = body
 
   if (!name || !phone) {
     return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 })
   }
 
   const contact = await prisma.contact.create({
-    data: { name, phone, phone2: phone2 || null, email, company, source, status: status || 'new', topic, createdById: session!.user.id },
+    data: {
+      name,
+      phone,
+      phone2: phone2 || null,
+      email,
+      company,
+      source,
+      status: status || 'new',
+      topic,
+      callPriority: callPriority || null,
+      createdById: session!.user.id,
+    },
   })
   return NextResponse.json(contact, { status: 201 })
 }

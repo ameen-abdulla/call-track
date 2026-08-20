@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
 
 export async function GET() {
-  const { error, session } = await requireAuth('agent')
+  const { error, session } = await requireAuth('FREELANCER')
   if (error) return error
 
   const agentId = session!.user.id
