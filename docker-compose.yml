@@ -1,0 +1,19 @@
+services:
+  call-track:
+    build: .
+    container_name: call-track
+    ports:
+      - "3000:3000"
+    volumes:
+      - call-track-data:/data
+    environment:
+      - DATABASE_URL=file:/data/dev.db
+      - AUTH_SECRET=your-secret-change-in-production-min-32-chars
+      - AUTH_URL=http://localhost:3000
+      - AUTH_TRUST_HOST=true
+      - NEXTAUTH_SECRET=your-secret-change-in-production-min-32-chars
+      - NEXTAUTH_URL=http://localhost:3000
+    restart: unless-stopped
+
+volumes:
+  call-track-data:
