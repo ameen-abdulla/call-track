@@ -6,6 +6,21 @@ export async function requireAuth(requiredRole?: string) {
   if (!session) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), session: null }
   }
+
+  // Block unapproved or suspended freelancers on all protected API routes
+  if (
+    session.user.role === 'FREELANCER' &&
+    session.user.freelancerStatus !== 'APPROVED'
+  ) {
+    return {
+      error: NextResponse.json(
+        { error: 'Account not approved or currently suspended' },
+        { status: 403 }
+      ),
+      session: null,
+    }
+  }
+
   if (requiredRole) {
     const normalizedRole =
       requiredRole.toUpperCase() === 'ADMIN'
@@ -18,5 +33,6 @@ export async function requireAuth(requiredRole?: string) {
       return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }), session: null }
     }
   }
+
   return { error: null, session }
 }

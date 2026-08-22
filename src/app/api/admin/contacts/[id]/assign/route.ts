@@ -17,8 +17,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Target must be an approved freelancer' }, { status: 400 })
   }
 
-  const contact = await prisma.contact.findUnique({ where: { id } })
-  if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+  const contact = await prisma.contact.findFirst({ where: { id, deletedAt: null } })
+  if (!contact) return NextResponse.json({ error: 'Contact not found or has been deleted' }, { status: 404 })
 
   // Block if contact has an active call in progress (status = 'contacted' and last call < 30 min ago)
   if (!force) {

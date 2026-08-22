@@ -75,6 +75,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden — contact is not assigned to you' }, { status: 403 })
     }
 
+    // Auto-link CallAttempt if this is a CALL interaction and callAttemptId was not provided/resolved
+    let finalCallAttemptId = callAttemptId || null
+    if (type === 'CALL' && !finalCallAttemptId) {
+      const windowMinutes = parseInt(process.env.CALL_VERIFICATION_WINDOW_MINUTES || '30', 10)
+      const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000)
+      const recentAttempt = await prisma.callAttempt.findFirst({
+        where: {
+          contactId,
+          freelancerId: session!.user.id,
+          triggeredAt: { gte: windowStart },
+        },
+        orderBy: { triggeredAt: 'desc' },
+      })
+      if (recentAttempt) {
+        finalCallAttemptId = recentAttempt.id
+      }
+    }
+
     // Determine updated contact status
     let updatedStatus = contact.status
     if (response === 'Not Interested') {
@@ -99,7 +117,7 @@ export async function POST(req: NextRequest) {
           freelancerId: session!.user.id,
           type: (type as InteractionType) || InteractionType.CALL,
           connected: type === 'CALL' ? (connected !== undefined ? Boolean(connected) : null) : null,
-          callAttemptId: callAttemptId || null,
+          callAttemptId: finalCallAttemptId,
           response: response || null,
           interestArea: interestArea || null,
           nextActivityRequired: Boolean(nextActivityRequired),

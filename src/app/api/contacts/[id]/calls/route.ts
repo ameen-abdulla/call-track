@@ -8,7 +8,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
 
   const contact = await prisma.contact.findUnique({ where: { id } })
-  if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!contact || (contact.deletedAt && session!.user.role !== 'ADMIN')) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   if (session!.user.role === 'FREELANCER' && contact.assignedToId !== session!.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

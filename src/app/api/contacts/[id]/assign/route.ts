@@ -11,8 +11,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const agentId = body.agentId ?? body.toUserId
   const topic = body.topic
 
-  const existingContact = await prisma.contact.findUnique({ where: { id } })
-  if (!existingContact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+  const existingContact = await prisma.contact.findFirst({ where: { id, deletedAt: null } })
+  if (!existingContact) return NextResponse.json({ error: 'Contact not found or has been deleted' }, { status: 404 })
 
   const previousAssigneeId = existingContact.assignedToId
 

@@ -9,6 +9,7 @@ export default auth((req) => {
   const isPublic =
     pathname === '/login' ||
     pathname === '/register' ||
+    pathname === '/auth/signed-out' ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/auth/register')
 

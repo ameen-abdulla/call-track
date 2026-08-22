@@ -25,6 +25,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'contactId is required' }, { status: 400 })
     }
 
+    // Verify contact exists and is not soft-deleted
+    const contact = await prisma.contact.findFirst({
+      where: { id: contactId, deletedAt: null },
+    })
+
+    if (!contact) {
+      return NextResponse.json({ error: 'Contact not found or deleted' }, { status: 404 })
+    }
+
+    // Spam / Cooldown Deduplication:
+    // If a CallAttempt for this contact & freelancer was recorded within the last 60 seconds, reuse it
+    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000)
+    const existingAttempt = await prisma.callAttempt.findFirst({
+      where: {
+        contactId,
+        freelancerId: session!.user.id,
+        triggeredAt: { gte: sixtySecondsAgo },
+      },
+      orderBy: { triggeredAt: 'desc' },
+    })
+
+    if (existingAttempt) {
+      return NextResponse.json({
+        success: true,
+        attemptId: existingAttempt.id,
+        triggeredAt: existingAttempt.triggeredAt,
+        deduplicated: true,
+      })
+    }
+
     const rawIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       req.headers.get('x-real-ip') ||
       '127.0.0.1'
