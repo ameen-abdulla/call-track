@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowDown, TrendingUp } from 'lucide-react'
+import { TrendingDown, ArrowDown } from 'lucide-react'
 
 interface FunnelStage {
   stage: string
@@ -13,64 +13,65 @@ interface SalesFunnelProps {
   data: FunnelStage[]
 }
 
-const STAGE_COLORS = [
-  'bg-blue-600 dark:bg-blue-500',
-  'bg-indigo-600 dark:bg-indigo-500',
-  'bg-sky-600 dark:bg-sky-500',
-  'bg-teal-600 dark:bg-teal-500',
-  'bg-emerald-600 dark:bg-emerald-500',
-  'bg-amber-600 dark:bg-amber-500',
-  'bg-green-600 dark:bg-green-500',
-]
-
 export function SalesFunnelChart({ data }: SalesFunnelProps) {
-  const maxCount = data.length > 0 ? Math.max(...data.map(d => d.count), 1) : 1
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 text-center text-[var(--text-muted)] text-xs">
+        No sales funnel stage data recorded.
+      </div>
+    )
+  }
+
+  const maxCount = Math.max(...data.map(d => d.count), 1)
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm space-y-4">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white text-base">Sales Conversion Funnel</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Prospect journey from discovery to won conversion</p>
+          <h3 className="font-semibold text-[var(--text-primary)] text-sm">Lead Conversion Funnel</h3>
+          <p className="text-[11px] text-[var(--text-secondary)]">Stage progression and drop-off rate from Prospect to Converted</p>
         </div>
-        <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-950/40 px-2.5 py-1 rounded-xl border border-green-200 dark:border-green-800">
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span>{data[data.length - 1]?.conversionFromTotal ?? 0}% Win Rate</span>
-        </div>
+        <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
+          {data[data.length - 1]?.count || 0} Deals Won
+        </span>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-2 pt-1">
         {data.map((stage, idx) => {
-          const widthPercent = Math.max(10, Math.round((stage.count / maxCount) * 100))
-          const color = STAGE_COLORS[idx % STAGE_COLORS.length]
+          const widthPercent = Math.max(18, Math.round((stage.count / maxCount) * 100))
+          const isFinal = idx === data.length - 1
+          const isInitial = idx === 0
+
+          let barColor = 'bg-slate-400 dark:bg-slate-600 text-white'
+          if (isInitial) barColor = 'bg-blue-600 dark:bg-blue-500 text-white'
+          else if (isFinal) barColor = 'bg-emerald-600 dark:bg-emerald-500 text-white'
+          else if (stage.stage.includes('Demo') || stage.stage.includes('Quotation')) barColor = 'bg-[var(--accent)] text-white'
 
           return (
             <div key={stage.stage} className="space-y-1">
-              <div className="flex items-center justify-between text-xs font-medium">
-                <span className="text-gray-800 dark:text-gray-200">{stage.stage}</span>
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-gray-900 dark:text-white">{stage.count}</span>
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400 w-16 text-right">
-                    ({stage.conversionFromTotal}%)
-                  </span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-[var(--text-primary)]">{stage.stage}</span>
+                <div className="flex items-center gap-2 font-mono">
+                  <span className="font-bold text-[var(--text-primary)]">{stage.count}</span>
+                  <span className="text-[10px] text-[var(--text-muted)]">({stage.conversionFromTotal}% of total)</span>
                 </div>
               </div>
 
-              <div className="w-full bg-gray-100 dark:bg-gray-800 h-6 rounded-xl overflow-hidden p-0.5 relative flex items-center">
+              {/* Visual Funnel Bar */}
+              <div className="h-6 w-full bg-[var(--bg)] rounded-[var(--radius-sm)] overflow-hidden flex items-center p-0.5 border border-[var(--border)]">
                 <div
-                  className={`h-full rounded-lg transition-all duration-500 flex items-center px-2 ${color}`}
+                  className={`h-full rounded-[4px] ${barColor} flex items-center justify-between px-2.5 transition-all duration-300`}
                   style={{ width: `${widthPercent}%` }}
                 >
-                  <span className="text-[11px] font-bold text-white tracking-wide truncate">
-                    {stage.count > 0 ? stage.count : ''}
-                  </span>
+                  <span className="text-[10px] font-mono font-bold">{stage.count}</span>
                 </div>
               </div>
 
+              {/* Step Drop-off Indicator */}
               {idx < data.length - 1 && stage.dropOff > 0 && (
-                <div className="flex items-center justify-end text-[10px] text-red-500 dark:text-red-400 pr-2">
-                  <ArrowDown className="w-3 h-3 inline" />
-                  <span>-{stage.dropOff}% drop-off</span>
+                <div className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] pl-2 font-mono">
+                  <ArrowDown className="w-3 h-3 text-red-500/70" />
+                  <span>{stage.dropOff}% drop-off to next stage</span>
                 </div>
               )}
             </div>

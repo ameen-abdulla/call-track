@@ -1,8 +1,8 @@
 'use client'
 
-import { UserCheck, ShieldAlert, PhoneCall, CheckCircle2 } from 'lucide-react'
+import { Users, Phone, CheckCircle, Clock, ShieldAlert } from 'lucide-react'
 
-interface FreelancerWorkload {
+interface FreelancerWorkloadItem {
   id: string
   name: string
   status: string
@@ -16,82 +16,87 @@ interface FreelancerWorkload {
 }
 
 interface FreelancerWorkloadProps {
-  data: FreelancerWorkload[]
+  data: FreelancerWorkloadItem[]
 }
 
 export function FreelancerWorkloadTable({ data }: FreelancerWorkloadProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 text-center text-gray-500 text-sm">
-        No freelancer data available.
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 text-center text-[var(--text-muted)] text-xs">
+        No active freelancer activity recorded.
       </div>
     )
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-card)] overflow-hidden">
+      <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white text-base">Freelancer Workload & Productivity</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Caller activity, connect rates, follow-ups, and verification</p>
+          <h3 className="font-semibold text-[var(--text-primary)] text-sm">Caller Productivity & Workload</h3>
+          <p className="text-[11px] text-[var(--text-secondary)]">Assigned load, reachability %, and outstanding follow-ups per freelancer</p>
         </div>
+        <span className="text-[11px] font-mono text-[var(--text-muted)]">
+          {data.length} Callers Active
+        </span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 font-medium">
-              <th className="py-2.5 px-3">Freelancer</th>
-              <th className="py-2.5 px-3">Assigned Leads</th>
-              <th className="py-2.5 px-3">Calls Made</th>
-              <th className="py-2.5 px-3">Connected</th>
-              <th className="py-2.5 px-3">Connect Rate</th>
-              <th className="py-2.5 px-3">Follow-ups Owed</th>
-              <th className="py-2.5 px-3">Unverified Logs</th>
+            <tr className="bg-[var(--bg)] border-b border-[var(--border-strong)] text-[var(--text-secondary)] font-semibold uppercase tracking-wider text-[10px]">
+              <th className="py-2.5 px-4">Freelancer</th>
+              <th className="py-2.5 px-3">Status</th>
+              <th className="py-2.5 px-3 text-right">Assigned</th>
+              <th className="py-2.5 px-3 text-right">Interactions</th>
+              <th className="py-2.5 px-3 text-right">Connected %</th>
+              <th className="py-2.5 px-3 text-right">Follow-ups Owed</th>
+              <th className="py-2.5 px-3 text-right">Unverified</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60">
+          <tbody className="divide-y divide-[var(--border)] text-[var(--text-primary)]">
             {data.map(f => (
-              <tr key={f.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                <td className="py-3 px-3 font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-                  <span>{f.name}</span>
+              <tr key={f.id} className="hover:bg-[var(--accent-subtle)]/40 transition-colors">
+                <td className="py-2.5 px-4 font-semibold text-[var(--text-primary)]">
+                  {f.name}
                 </td>
-                <td className="py-3 px-3 font-medium text-gray-700 dark:text-gray-300">{f.assignedContacts}</td>
-                <td className="py-3 px-3 text-gray-700 dark:text-gray-300">{f.callsLogged}</td>
-                <td className="py-3 px-3 text-green-600 dark:text-green-400 font-medium">{f.connectedCalls}</td>
-                <td className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-16 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          f.connectedRate >= 50 ? 'bg-green-500' : f.connectedRate >= 25 ? 'bg-amber-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${Math.min(100, f.connectedRate)}%` }}
-                      />
-                    </div>
-                    <span className="font-semibold text-gray-900 dark:text-white">{f.connectedRate}%</span>
-                  </div>
+                <td className="py-2.5 px-3">
+                  <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-[var(--radius-sm)] border ${
+                    f.status === 'APPROVED' || f.status === 'ACTIVE'
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                  }`}>
+                    {f.status}
+                  </span>
                 </td>
-                <td className="py-3 px-3">
-                  <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
-                    f.followupsOwed > 0
-                      ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                <td className="py-2.5 px-3 text-right font-mono font-medium">
+                  {f.assignedContacts}
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono font-medium">
+                  {f.interactionsLogged}
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono">
+                  <span className={`font-bold ${
+                    f.connectedRate >= 40
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : f.connectedRate > 0
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-[var(--text-muted)]'
+                  }`}>
+                    {f.connectedRate}%
+                  </span>
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono">
+                  <span className={`font-semibold ${
+                    f.followupsOwed > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-[var(--text-muted)]'
                   }`}>
                     {f.followupsOwed}
                   </span>
                 </td>
-                <td className="py-3 px-3">
+                <td className="py-2.5 px-3 text-right font-mono text-[var(--text-muted)]">
                   {f.unverifiedCalls > 0 ? (
-                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
-                      <ShieldAlert className="w-3.5 h-3.5" />
-                      {f.unverifiedCalls}
-                    </span>
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">{f.unverifiedCalls}</span>
                   ) : (
-                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> All verified
-                    </span>
+                    '0'
                   )}
                 </td>
               </tr>

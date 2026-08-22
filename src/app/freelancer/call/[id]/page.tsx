@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Phone, ArrowLeft, ChevronDown, CheckCircle2, AlertCircle, Info, Sparkles, ShieldCheck, ShieldAlert, Mail, Users } from 'lucide-react'
@@ -57,9 +58,8 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
 
   // Verification state
   const [verifiedAttempt, setVerifiedAttempt] = useState<{ id: string; triggeredAt: string } | null>(null)
-  const [checkingVerification, setCheckingVerification] = useState(true)
 
-  // Interaction Form state
+  // Form state
   const [interactionType, setInteractionType] = useState<'CALL' | 'EMAIL' | 'MEETING'>('CALL')
   const [isConnected, setIsConnected] = useState<boolean>(true)
   const [selectedResponse, setSelectedResponse] = useState<string>('')
@@ -71,7 +71,6 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
 
   const currentOption = FEEDBACK_OPTIONS.find(o => o.value === selectedResponse)
 
-  // Load contact and check call attempt verification
   useEffect(() => {
     let ignore = false
     async function loadData() {
@@ -93,22 +92,16 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
           }
         }
       } catch (err) {
-        console.error('Error loading contact or attempt data:', err)
+        console.error('Error loading data:', err)
       } finally {
-        if (!ignore) {
-          setLoading(false)
-          setCheckingVerification(false)
-        }
+        if (!ignore) setLoading(false)
       }
     }
 
     loadData()
-    return () => {
-      ignore = true
-    }
+    return () => { ignore = true }
   }, [id])
 
-  // Handle tap-to-call click and record CallAttempt
   const handleCallTap = (phoneToCall: string) => {
     try {
       const payload = JSON.stringify({ contactId: id })
@@ -123,11 +116,8 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
           keepalive: true,
         }).catch(() => {})
       }
-      // Optimistically mark as verified
       setVerifiedAttempt({ id: 'just-tapped', triggeredAt: new Date().toISOString() })
-    } catch {
-      // Fallback non-blocking
-    }
+    } catch {}
   }
 
   const handleResponseChange = (value: string) => {
@@ -138,13 +128,9 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
         setScheduleNext(false)
       } else {
         setScheduleNext(true)
-        if (value.toLowerCase().includes('demo')) {
-          setActivityType('meeting')
-        } else if (value.toLowerCase().includes('email')) {
-          setActivityType('email')
-        } else {
-          setActivityType('call')
-        }
+        if (value.toLowerCase().includes('demo')) setActivityType('meeting')
+        else if (value.toLowerCase().includes('email')) setActivityType('email')
+        else setActivityType('call')
       }
     }
   }
@@ -173,134 +159,114 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
 
       if (res.ok) {
         setSaved(true)
-        setTimeout(() => router.push('/freelancer'), 1200)
+        setTimeout(() => router.push('/freelancer'), 1000)
       } else {
         const err = await res.json()
         alert(err.error || 'Failed to save interaction')
       }
-    } catch (e) {
+    } catch {
       alert('Network error. Please try again.')
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center text-gray-500">Loading contact details...</div>
-  if (!contact) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center text-gray-500">Contact not found</div>
+  if (loading) return <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center text-xs text-[var(--text-muted)]">Loading contact...</div>
+  if (!contact) return <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center text-xs text-[var(--text-muted)]">Contact not found</div>
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors">
+    <main className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)]">
       {/* Top Bar */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-20 shadow-xs">
+        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2.5">
           <button
             onClick={() => router.push('/freelancer')}
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
+            className="p-1.5 rounded-[var(--radius-sm)] hover:bg-[var(--bg)] text-[var(--text-secondary)]"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h1 className="font-bold text-gray-900 dark:text-white text-base truncate">{contact.name}</h1>
-              {contact.callPriority && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                  Priority {contact.callPriority}
-                </span>
-              )}
-            </div>
-            {contact.company && <p className="text-xs text-gray-500 dark:text-gray-400">{contact.company}</p>}
+            <h1 className="font-bold text-sm text-[var(--text-primary)] truncate">{contact.name}</h1>
+            {contact.company && <p className="text-[10px] text-[var(--text-muted)]">{contact.company}</p>}
           </div>
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-4 pb-24">
-        {/* Contact info card with click-to-call buttons */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-800 space-y-3">
+      <div className="max-w-md mx-auto px-4 py-4 space-y-3 pb-24">
+        {/* Contact Info & Call Action Card */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4 shadow-[var(--shadow-card)] space-y-3">
           <div className="flex flex-col gap-2">
             <a
               href={`tel:${contact.phone}`}
               onClick={() => handleCallTap(contact.phone)}
-              className="flex items-center justify-center gap-2.5 bg-green-600 hover:bg-green-700 text-white px-4 py-3.5 rounded-xl font-semibold min-h-[50px] transition-all shadow-md shadow-green-600/20"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-[var(--radius-md)] text-sm flex items-center justify-center gap-2 shadow-xs transition-colors min-h-[48px]"
             >
-              <Phone className="w-5 h-5" />
-              <span>Call Primary: {contact.phone}</span>
+              <Phone className="w-4 h-4" />
+              <span>Call Primary: <strong className="font-mono">{contact.phone}</strong></span>
             </a>
 
             {contact.phone2 && (
               <a
                 href={`tel:${contact.phone2}`}
                 onClick={() => handleCallTap(contact.phone2!)}
-                className="flex items-center justify-center gap-2.5 bg-teal-600 hover:bg-teal-700 text-white px-4 py-3.5 rounded-xl font-semibold min-h-[50px] transition-all shadow-md shadow-teal-600/20"
+                className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold py-2.5 px-4 rounded-[var(--radius-md)] text-xs flex items-center justify-center gap-2 transition-colors min-h-[44px]"
               >
-                <Phone className="w-5 h-5" />
-                <span>Call Mobile/WhatsApp: {contact.phone2}</span>
+                <Phone className="w-3.5 h-3.5" />
+                <span>Call WhatsApp: <strong className="font-mono">{contact.phone2}</strong></span>
               </a>
             )}
           </div>
 
-          {/* Verification Badge */}
+          {/* Explicit Icon + Text Verification Badge */}
           {interactionType === 'CALL' && (
-            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+            <div className="pt-2 border-t border-[var(--border)]">
               {verifiedAttempt ? (
-                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-xs">
-                  <ShieldCheck className="w-4 h-4 shrink-0 text-green-600 dark:text-green-400" />
+                <div className="flex items-center gap-2 p-2.5 rounded-[var(--radius-sm)] bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs">
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600" />
                   <div>
-                    <span className="font-semibold">Call Verified</span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">
-                      (Tapped call button at {new Date(verifiedAttempt.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
-                    </span>
+                    <span className="font-bold">Call Verified: </span>
+                    <span className="text-[11px]">Dialer tap recorded</span>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs">
-                  <ShieldAlert className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="flex items-center gap-2 p-2.5 rounded-[var(--radius-sm)] bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
+                  <ShieldAlert className="w-4 h-4 shrink-0 text-amber-600" />
                   <div>
-                    <span className="font-semibold">Unverified Call</span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">
-                      (No recent call tap detected. You can still log your notes.)
-                    </span>
+                    <span className="font-bold">Unverified Call: </span>
+                    <span className="text-[11px]">No tap detected</span>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {contact.tags && contact.tags.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap pt-1">
-              {contact.tags.map(t => (
-                <span key={t.tag.id} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-gray-700">
-                  {t.tag.name}
-                </span>
-              ))}
-            </div>
-          )}
-
           {contact.topic && (
-            <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/80 rounded-xl p-3">
-              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Topic to discuss</p>
-              <p className="text-sm text-blue-900 dark:text-blue-200 mt-0.5">{contact.topic}</p>
+            <div className="p-2.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-secondary)]">
+              <span className="font-semibold text-[var(--text-primary)]">Talking Point: </span>
+              {contact.topic}
             </div>
           )}
         </div>
 
-        {/* Interaction Type Selection Tabs */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-1.5 shadow-sm border border-gray-200 dark:border-gray-800 grid grid-cols-3 gap-1">
+        {/* Interaction Type Switcher */}
+        <div className="grid grid-cols-3 gap-1 bg-[var(--surface)] p-1 rounded-[var(--radius-md)] border border-[var(--border)] shadow-[var(--shadow-card)]">
           {[
             { key: 'CALL', label: 'Call Log', icon: Phone },
-            { key: 'EMAIL', label: 'Email Sent', icon: Mail },
-            { key: 'MEETING', label: 'Meeting / Demo', icon: Users },
+            { key: 'EMAIL', label: 'Email', icon: Mail },
+            { key: 'MEETING', label: 'Meeting', icon: Users },
           ].map(tab => {
             const Icon = tab.icon
             const active = interactionType === tab.key
+
             return (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setInteractionType(tab.key as typeof interactionType)}
-                className={`py-2.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                className={`py-2 rounded-[var(--radius-sm)] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                   active
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                    ? 'bg-[var(--accent)] text-white shadow-xs'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg)]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -312,209 +278,143 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
 
         {/* Call Specific: Connected or Unanswered Switch */}
         {interactionType === 'CALL' && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-800 space-y-2.5">
-            <h2 className="font-semibold text-gray-900 dark:text-white text-sm">Did the prospect answer? *</h2>
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-2">
+            <h3 className="font-semibold text-xs text-[var(--text-primary)]">Did the prospect answer? *</h3>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setIsConnected(true)}
-                className={`py-3 px-3 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2.5 px-3 rounded-[var(--radius-sm)] border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                   isConnected
-                    ? 'bg-green-50 dark:bg-green-950/60 border-green-500 text-green-700 dark:text-green-300 ring-2 ring-green-500'
-                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500'
+                    : 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]'
                 }`}
               >
-                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Yes — Connected</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsConnected(false)}
-                className={`py-3 px-3 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2.5 px-3 rounded-[var(--radius-sm)] border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                   !isConnected
-                    ? 'bg-red-50 dark:bg-red-950/60 border-red-500 text-red-700 dark:text-red-300 ring-2 ring-red-500'
-                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+                    ? 'bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 ring-1 ring-red-500'
+                    : 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]'
                 }`}
               >
-                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <AlertCircle className="w-3.5 h-3.5 text-red-600" />
                 <span>No Answer / Busy</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Structured Feedback & Interest Area (if connected or email/meeting) */}
+        {/* Response & Notes Form */}
         {(interactionType !== 'CALL' || isConnected) && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-800 space-y-4">
-            {/* Standard Response Lookup */}
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-3">
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Response Lookup *</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Select the standardized outcome for this prospect:</p>
+              <label className="font-semibold text-xs text-[var(--text-primary)] block mb-1">Standardized Response Outcome *</label>
               <select
                 value={selectedResponse}
                 onChange={e => handleResponseChange(e.target.value)}
-                className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[48px]"
+                className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
               >
-                <option value="">-- Select prospect response --</option>
+                <option value="">-- Choose prospect response --</option>
                 {FEEDBACK_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    [{opt.group}] {opt.label}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Smart Helper Card */}
             {currentOption && (
-              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 rounded-xl p-3.5 space-y-2 text-xs">
-                <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-blue-800 dark:text-blue-300 uppercase tracking-wide">Context: </span>
-                    <span className="text-gray-700 dark:text-gray-300">{currentOption.description}</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 pt-2 border-t border-blue-200/60 dark:border-blue-900/60">
-                  <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">Recommended Action: </span>
-                    <span className="text-gray-800 dark:text-gray-200">{currentOption.recommendedNextAction}</span>
-                  </div>
-                </div>
+              <div className="p-2.5 rounded-[var(--radius-sm)] bg-blue-500/5 border border-blue-500/20 text-[11px] text-[var(--text-secondary)] space-y-1">
+                <p><strong className="text-[var(--text-primary)]">Guidance: </strong>{currentOption.description}</p>
+                <p><strong className="text-[var(--accent)]">Next Step: </strong>{currentOption.recommendedNextAction}</p>
               </div>
             )}
 
-            {/* Interest Area Selection */}
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Interest Area (optional)</h2>
+              <label className="font-semibold text-xs text-[var(--text-primary)] block mb-1">Interest Area (optional)</label>
               <select
                 value={selectedInterestArea}
                 onChange={e => setSelectedInterestArea(e.target.value)}
-                className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[48px]"
+                className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
               >
-                <option value="">-- Select product interest area --</option>
+                <option value="">-- Select solution area --</option>
                 {INTEREST_AREAS.map(area => (
-                  <option key={area.value} value={area.value}>
-                    {area.label}
-                  </option>
+                  <option key={area.value} value={area.value}>{area.label}</option>
                 ))}
               </select>
             </div>
 
-            {/* Notes */}
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Interaction Notes</h2>
+              <label className="font-semibold text-xs text-[var(--text-primary)] block mb-1">Call Notes</label>
               <textarea
                 value={feedbackNotes}
                 onChange={e => setFeedbackNotes(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-                placeholder="What was discussed? Fleet size, current provider, decision maker details..."
+                rows={2}
+                placeholder="Fleet size, existing supplier, decision-maker notes..."
+                className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none resize-none"
               />
             </div>
           </div>
         )}
 
-        {/* Next Activity Scheduler */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-800 space-y-3">
+        {/* Schedule Follow-up Card */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-2.5">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900 dark:text-white text-sm">Next Follow-up Activity</h2>
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600 dark:text-gray-300">
+            <span className="font-semibold text-xs text-[var(--text-primary)]">Follow-up Activity</span>
+            <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={scheduleNext}
                 onChange={e => setScheduleNext(e.target.checked)}
-                className="w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500"
+                className="rounded-[2px]"
               />
               <span>Schedule follow-up</span>
             </label>
           </div>
 
           {scheduleNext && (
-            <div className="space-y-3 pt-1">
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Activity Type</p>
-                <div className="flex gap-2">
-                  {['call', 'email', 'meeting'].map(t => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setActivityType(t)}
-                      className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition-all ${
-                        activityType === t
-                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-500 ring-1 ring-blue-500'
-                          : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+            <div className="space-y-2 pt-1 text-xs">
+              <div className="flex gap-2">
+                {['call', 'email', 'meeting'].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setActivityType(t)}
+                    className={`flex-1 py-1.5 rounded-[var(--radius-sm)] border capitalize text-xs font-semibold ${
+                      activityType === t
+                        ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                        : 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
 
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Due Date & Time</p>
-                <input
-                  type="datetime-local"
-                  value={nextDate}
-                  onChange={e => setNextDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px]"
-                />
-              </div>
+              <input
+                type="datetime-local"
+                value={nextDate}
+                onChange={e => setNextDate(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]"
+              />
             </div>
           )}
         </div>
 
-        {/* Save Button */}
+        {/* Action Button */}
         <button
           onClick={handleSave}
           disabled={saving || saved || (interactionType === 'CALL' && isConnected && !selectedResponse)}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-semibold text-base min-h-[52px] disabled:opacity-50 transition-all shadow-lg shadow-blue-500/20"
+          className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-3.5 rounded-[var(--radius-md)] text-sm shadow-xs transition-colors disabled:opacity-50 min-h-[48px]"
         >
-          {saved ? '✅ Saved! Returning to Queue...' : saving ? 'Saving Interaction Record...' : 'Save Interaction Record'}
+          {saved ? '✓ Saved! Returning to queue...' : saving ? 'Saving...' : 'Save Interaction Record'}
         </button>
-
-        {/* Past Interaction & Call History */}
-        {((contact.interactions && contact.interactions.length > 0) || (contact.calls && contact.calls.length > 0)) && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="w-full px-4 py-3.5 flex items-center justify-between text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/60 min-h-[44px] transition-colors"
-            >
-              <span>Interaction History ({contact.interactions?.length || contact.calls?.length || 0})</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
-            </button>
-
-            {showHistory && (
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {(contact.interactions || []).map(item => (
-                  <div key={item.id} className="px-4 py-3 bg-gray-50/50 dark:bg-gray-800/30 space-y-1 text-xs">
-                    <div className="flex items-center justify-between font-semibold">
-                      <span className="text-gray-900 dark:text-white capitalize">
-                        {item.type} {item.connected !== null ? (item.connected ? '— Connected' : '— No Answer') : ''}
-                      </span>
-                      <span className="text-gray-400">{new Date(item.occurredAt).toLocaleDateString()}</span>
-                    </div>
-
-                    {item.response && (
-                      <span className="inline-block px-2 py-0.5 rounded-full font-medium bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                        {item.response}
-                      </span>
-                    )}
-
-                    {item.interestArea && (
-                      <p className="text-purple-600 dark:text-purple-300">📦 {item.interestArea}</p>
-                    )}
-
-                    {item.notes && <p className="text-gray-600 dark:text-gray-300 mt-1">{item.notes}</p>}
-                    <p className="text-[11px] text-gray-400 pt-0.5">by {item.freelancer?.name || 'Caller'}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </main>
   )

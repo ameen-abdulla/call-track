@@ -1,6 +1,6 @@
 'use client'
 
-import { ShieldCheck, AlertCircle, PhoneOff, FileQuestion, MailWarning, ShieldAlert } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ShieldAlert, FileQuestion, PhoneOff, Mail } from 'lucide-react'
 
 interface DataQualityData {
   neverCalledCount: number
@@ -9,80 +9,105 @@ interface DataQualityData {
   unverifiedCallLogs: number
 }
 
-interface DataQualityPanelProps {
+interface DataQualityProps {
   data: DataQualityData
 }
 
-export function DataQualityPanel({ data }: DataQualityPanelProps) {
-  const issues = [
+export function DataQualityPanel({ data }: DataQualityProps) {
+  const items = [
     {
-      label: 'Prospects Never Called',
+      title: 'Uncontacted Leads',
+      description: 'Prospects with 0 logged interactions',
       count: data.neverCalledCount,
       icon: PhoneOff,
-      description: 'Prospects in database with zero call or interaction attempts',
-      level: data.neverCalledCount > 0 ? 'warning' : 'good',
+      severity: data.neverCalledCount > 0 ? 'warning' : 'ok',
+      actionHint: 'Assign to callers',
     },
     {
-      label: 'Missing Phone or Email',
-      count: data.missingPhoneOrEmail,
-      icon: MailWarning,
-      description: 'Records missing either primary phone or email address',
-      level: data.missingPhoneOrEmail > 0 ? 'info' : 'good',
-    },
-    {
-      label: 'Calls Missing Response',
+      title: 'Missing Response Outcome',
+      description: 'Interactions logged without categorized outcome',
       count: data.noResponseCount,
       icon: FileQuestion,
-      description: 'Interacted contacts with no standard response lookup logged',
-      level: data.noResponseCount > 0 ? 'warning' : 'good',
+      severity: data.noResponseCount > 0 ? 'warning' : 'ok',
+      actionHint: 'Review with team',
     },
     {
-      label: 'Unverified Call Logs',
+      title: 'Missing Contact Details',
+      description: 'Prospects missing either phone or email',
+      count: data.missingPhoneOrEmail,
+      icon: Mail,
+      severity: data.missingPhoneOrEmail > 0 ? 'neutral' : 'ok',
+      actionHint: 'Enrich lead data',
+    },
+    {
+      title: 'Unverified Call Logs',
+      description: 'Logged without mobile tap detection',
       count: data.unverifiedCallLogs,
       icon: ShieldAlert,
-      description: 'Calls logged without click-to-call tap verification signal',
-      level: data.unverifiedCallLogs > 0 ? 'alert' : 'good',
+      severity: data.unverifiedCallLogs > 0 ? 'warning' : 'ok',
+      actionHint: 'Audit tap tracking',
     },
   ]
 
+  const totalIssues = data.neverCalledCount + data.noResponseCount + data.unverifiedCallLogs
+
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-3">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white text-base">Data Quality & Verification Health</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Database hygiene, missing fields, and call verification integrity</p>
+        <div className="flex items-center gap-2">
+          <div className="p-1 rounded-[var(--radius-sm)] bg-[var(--accent)]/10 text-[var(--accent)]">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-[var(--text-primary)] text-sm">Data Hygiene & Health Checklist</h3>
+            <p className="text-[11px] text-[var(--text-secondary)]">Actionable data quality gaps requiring administrative attention</p>
+          </div>
         </div>
+
+        <span className={`text-[11px] font-semibold font-mono px-2.5 py-1 rounded-[var(--radius-sm)] border ${
+          totalIssues === 0
+            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+        }`}>
+          {totalIssues === 0 ? '100% Pipeline Health' : `${totalIssues} Items to Review`}
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {issues.map(issue => {
-          const Icon = issue.icon
-          const isGood = issue.count === 0
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {items.map(item => {
+          const Icon = item.icon
+          const hasIssues = item.count > 0
+
+          let statusBg = 'bg-[var(--bg)] border-[var(--border)]'
+          let countClass = 'text-[var(--text-secondary)]'
+
+          if (item.severity === 'warning' && hasIssues) {
+            statusBg = 'bg-amber-500/5 border-amber-500/20'
+            countClass = 'text-amber-600 dark:text-amber-400 font-bold'
+          } else if (item.severity === 'ok') {
+            statusBg = 'bg-emerald-500/5 border-emerald-500/20'
+            countClass = 'text-emerald-600 dark:text-emerald-400 font-bold'
+          }
+
           return (
             <div
-              key={issue.label}
-              className={`p-3 rounded-xl border flex flex-col justify-between ${
-                isGood
-                  ? 'bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900/60'
-                  : issue.level === 'alert'
-                  ? 'bg-red-50/60 dark:bg-red-950/40 border-red-200 dark:border-red-800'
-                  : 'bg-amber-50/60 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
-              }`}
+              key={item.title}
+              className={`p-3 rounded-[var(--radius-sm)] border ${statusBg} flex flex-col justify-between`}
             >
               <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{issue.label}</span>
-                  <Icon className={`w-4 h-4 ${isGood ? 'text-green-500' : issue.level === 'alert' ? 'text-red-500' : 'text-amber-500'}`} />
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{item.title}</span>
+                  <Icon className={`w-3.5 h-3.5 ${hasIssues ? 'text-amber-500' : 'text-emerald-500'} shrink-0`} />
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">{issue.description}</p>
+                <p className="text-[10px] text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                  {item.description}
+                </p>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-gray-200/60 dark:border-gray-800 flex items-center justify-between">
-                <span className="text-xs text-gray-500">Count:</span>
-                <span className={`text-base font-bold ${
-                  isGood ? 'text-green-600 dark:text-green-400' : issue.level === 'alert' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
-                }`}>
-                  {issue.count}
+              <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border)]">
+                <span className="text-[10px] text-[var(--text-muted)]">{item.actionHint}</span>
+                <span className={`text-base font-mono ${countClass}`}>
+                  {item.count}
                 </span>
               </div>
             </div>

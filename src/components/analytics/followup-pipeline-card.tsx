@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, AlertTriangle, Calendar, CalendarDays, CheckCircle2, ShieldQuestion } from 'lucide-react'
+import { Calendar, Clock, AlertTriangle, CheckCircle, ChevronRight } from 'lucide-react'
 
 interface FollowupPipelineData {
   overdue: number
@@ -20,86 +20,111 @@ export function FollowupPipelineCard({ data, onSelectBucket }: FollowupPipelineP
   const buckets = [
     {
       key: 'overdue',
-      label: 'Overdue Follow-ups',
+      label: 'Overdue',
       count: data.overdue,
+      subtext: 'Immediate action needed',
+      variant: 'danger',
       icon: AlertTriangle,
-      bg: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
-      badgeBg: 'bg-red-600 text-white',
-      urgent: true,
     },
     {
       key: 'dueToday',
       label: 'Due Today',
       count: data.dueToday,
+      subtext: 'Scheduled for today',
+      variant: 'warning',
       icon: Clock,
-      bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
-      badgeBg: 'bg-amber-500 text-white',
-      urgent: false,
     },
     {
       key: 'next7Days',
       label: 'Next 7 Days',
       count: data.next7Days,
+      subtext: 'This week',
+      variant: 'accent',
       icon: Calendar,
-      bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
-      badgeBg: 'bg-blue-600 text-white',
-      urgent: false,
     },
     {
       key: 'days8to30',
       label: '8 – 30 Days',
       count: data.days8to30,
-      icon: CalendarDays,
-      bg: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300',
-      badgeBg: 'bg-indigo-600 text-white',
-      urgent: false,
+      subtext: 'This month',
+      variant: 'neutral',
+      icon: Calendar,
     },
     {
       key: 'days31Plus',
       label: '31+ Days',
       count: data.days31Plus,
-      icon: CheckCircle2,
-      bg: 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300',
-      badgeBg: 'bg-gray-600 text-white',
-      urgent: false,
+      subtext: 'Longer term',
+      variant: 'neutral',
+      icon: Calendar,
     },
     {
       key: 'noFollowup',
-      label: 'No Follow-up Scheduled',
+      label: 'No Follow-up',
       count: data.noFollowup,
-      icon: ShieldQuestion,
-      bg: 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
-      badgeBg: 'bg-purple-600 text-white',
-      urgent: false,
+      subtext: 'Unscheduled prospects',
+      variant: 'muted',
+      icon: CheckCircle,
     },
   ]
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white text-base">Follow-up Pipeline</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Scheduled callback and follow-up activities by due horizon</p>
+          <h3 className="font-semibold text-[var(--text-primary)] text-sm">Follow-up Pipeline Horizon</h3>
+          <p className="text-[11px] text-[var(--text-secondary)]">Urgency breakdown of scheduled caller activities</p>
         </div>
+        {data.overdue > 0 && (
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 flex items-center gap-1 animate-pulse">
+            <AlertTriangle className="w-3 h-3" />
+            {data.overdue} Overdue
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         {buckets.map(b => {
+          let cardStyle = 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-primary)]'
+          let countColor = 'text-[var(--text-primary)]'
+          let iconColor = 'text-[var(--text-secondary)]'
+
+          if (b.variant === 'danger') {
+            cardStyle = b.count > 0
+              ? 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300 ring-1 ring-red-500/30'
+              : 'bg-[var(--bg)] border-[var(--border)]'
+            countColor = b.count > 0 ? 'text-red-600 dark:text-red-400 font-extrabold' : 'text-[var(--text-muted)]'
+            iconColor = b.count > 0 ? 'text-red-600 dark:text-red-400' : 'text-[var(--text-muted)]'
+          } else if (b.variant === 'warning') {
+            cardStyle = b.count > 0 ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300' : 'bg-[var(--bg)] border-[var(--border)]'
+            countColor = b.count > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-[var(--text-muted)]'
+            iconColor = b.count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-[var(--text-muted)]'
+          } else if (b.variant === 'accent') {
+            cardStyle = 'bg-[var(--accent)]/5 border-[var(--accent)]/20'
+            countColor = 'text-[var(--accent)] font-bold'
+            iconColor = 'text-[var(--accent)]'
+          }
+
           const Icon = b.icon
+
           return (
-            <div
+            <button
               key={b.key}
+              type="button"
               onClick={() => onSelectBucket?.(b.key)}
-              className={`p-3 rounded-xl border flex flex-col justify-between cursor-pointer transition-transform hover:scale-[1.02] ${b.bg}`}
+              className={`p-3 rounded-[var(--radius-sm)] border text-left flex flex-col justify-between transition-all hover:border-[var(--accent)] ${cardStyle} group`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <Icon className="w-4 h-4" />
-                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${b.badgeBg}`}>
-                  {b.count}
-                </span>
+              <div className="flex items-center justify-between w-full mb-1">
+                <span className="text-[11px] font-semibold">{b.label}</span>
+                <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
               </div>
-              <p className="text-xs font-semibold leading-tight">{b.label}</p>
-            </div>
+              <div className={`text-xl font-mono ${countColor}`}>
+                {b.count.toLocaleString()}
+              </div>
+              <span className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
+                {b.subtext}
+              </span>
+            </button>
           )
         })}
       </div>
