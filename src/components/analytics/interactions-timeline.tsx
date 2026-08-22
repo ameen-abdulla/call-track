@@ -31,9 +31,9 @@ export function InteractionsTimeline({ data }: InteractionsTimelineProps) {
         </div>
       </div>
 
-      <div className="h-64 w-full">
+      <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
             <defs>
               <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
@@ -59,7 +59,11 @@ export function InteractionsTimeline({ data }: InteractionsTimelineProps) {
                 fontSize: '12px',
               }}
             />
-            <Legend wrapperStyle={{ fontSize: '12px' }} />
+            <Legend
+              verticalAlign="top"
+              align="right"
+              wrapperStyle={{ fontSize: '12px', paddingBottom: '12px' }}
+            />
             <Area type="monotone" dataKey="calls" name="Calls" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCalls)" />
             <Area type="monotone" dataKey="emails" name="Emails" stroke="#10b981" fillOpacity={1} fill="url(#colorEmails)" />
             <Area type="monotone" dataKey="meetings" name="Meetings" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorMeetings)" />

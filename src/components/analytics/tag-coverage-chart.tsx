@@ -32,15 +32,20 @@ export function TagCoverageChart({ data }: TagCoverageProps) {
         </div>
       </div>
 
-      <div className="h-64 w-full">
+      <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 10, right: 10, left: -20, bottom: 40 }}
+            barGap={4}
+          >
             <XAxis
               dataKey="name"
               tick={{ fontSize: 11, fill: '#888888' }}
               interval={0}
-              angle={-20}
+              angle={-15}
               textAnchor="end"
+              height={50}
             />
             <YAxis tick={{ fontSize: 11, fill: '#888888' }} allowDecimals={false} />
             <Tooltip
@@ -52,9 +57,13 @@ export function TagCoverageChart({ data }: TagCoverageProps) {
                 fontSize: '12px',
               }}
             />
-            <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-            <Bar dataKey="assigned" name="Assigned" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="unassigned" name="Unassigned" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+            <Legend
+              verticalAlign="top"
+              align="right"
+              wrapperStyle={{ fontSize: '12px', paddingBottom: '12px' }}
+            />
+            <Bar dataKey="assigned" name="Assigned" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={44} />
+            <Bar dataKey="unassigned" name="Unassigned" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={44} />
           </BarChart>
         </ResponsiveContainer>
       </div>
