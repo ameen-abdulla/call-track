@@ -107,6 +107,8 @@ export default function AdminDashboard() {
   const [showContactDetail, setShowContactDetail] = useState<Contact | null>(null)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null)
+  const [deletingFreelancer, setDeletingFreelancer] = useState<Freelancer | null>(null)
+  const [deletingFreelancerLoading, setDeletingFreelancerLoading] = useState(false)
   
   // Add Contact Form
   const [newContact, setNewContact] = useState({
@@ -295,6 +297,25 @@ export default function AdminDashboard() {
       }
     } catch {
       alert('Error connecting to server')
+    }
+  }
+
+  async function handleDeleteFreelancer() {
+    if (!deletingFreelancer) return
+    setDeletingFreelancerLoading(true)
+    try {
+      const res = await fetch(`/api/admin/freelancers/${deletingFreelancer.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (res.ok) {
+        setDeletingFreelancer(null)
+        refreshAll()
+      } else {
+        alert(data.error || 'Failed to delete freelancer')
+      }
+    } catch {
+      alert('Error connecting to server')
+    } finally {
+      setDeletingFreelancerLoading(false)
     }
   }
 
@@ -972,18 +993,42 @@ export default function AdminDashboard() {
 
                 <div className="space-y-2">
                   {freelancers.map(agent => (
-                    <div key={agent.id} className="p-3 bg-[var(--bg)] rounded-[var(--radius-sm)] border border-[var(--border)] flex items-center justify-between">
+                    <div key={agent.id} className="p-3 bg-[var(--bg)] rounded-[var(--radius-sm)] border border-[var(--border)] flex items-center justify-between gap-3 text-xs">
                       <div>
-                        <p className="text-xs font-bold text-[var(--text-primary)]">{agent.name}</p>
-                        <p className="text-[11px] text-[var(--text-muted)] font-mono">{agent.email}</p>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/admin/freelancers/${agent.id}`} className="font-bold text-xs text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors">
+                            {agent.name}
+                          </Link>
+                          <span className={`text-[10px] font-mono font-semibold px-2 py-0.2 rounded-[var(--radius-sm)] border ${
+                            agent.freelancerStatus === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                          }`}>
+                            {agent.freelancerStatus || 'ACTIVE'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">{agent.email}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-mono font-bold text-[var(--text-primary)]">{agent._count?.assignedContacts ?? 0} leads</p>
-                        <span className={`text-[10px] font-mono font-semibold px-2 py-0.2 rounded-[var(--radius-sm)] border ${
-                          agent.freelancerStatus === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                        }`}>
-                          {agent.freelancerStatus || 'ACTIVE'}
-                        </span>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right font-mono">
+                          <p className="text-xs font-bold text-[var(--text-primary)]">{agent._count?.assignedContacts ?? 0} leads</p>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Link
+                            href={`/admin/freelancers/${agent.id}`}
+                            className="px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] text-[11px] font-medium"
+                          >
+                            Manage →
+                          </Link>
+
+                          <button
+                            onClick={() => setDeletingFreelancer(agent)}
+                            className="p-1 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 transition-colors"
+                            title="Delete Freelancer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1393,6 +1438,46 @@ export default function AdminDashboard() {
                   <span className="font-semibold text-[var(--accent)]">Topic: </span>{showContactDetail.topic}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Freelancer Confirmation Modal */}
+      {deletingFreelancer && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] w-full max-w-sm p-5 shadow-[var(--shadow-modal)] space-y-3 text-xs">
+            <div className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              <h3 className="font-bold text-sm text-[var(--text-primary)]">Delete Freelancer Account?</h3>
+            </div>
+
+            <p className="text-[var(--text-secondary)] leading-relaxed">
+              Are you sure you want to permanently delete <strong>{deletingFreelancer.name}</strong> ({deletingFreelancer.email})?
+            </p>
+
+            {(deletingFreelancer._count?.assignedContacts ?? 0) > 0 && (
+              <div className="p-2.5 rounded-[var(--radius-sm)] bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold">
+                ⚠️ {deletingFreelancer._count?.assignedContacts} contacts will be unassigned and returned to the Unassigned Pool.
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingFreelancer(null)}
+                className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border)] text-xs text-[var(--text-secondary)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteFreelancer}
+                disabled={deletingFreelancerLoading}
+                className="px-4 py-1.5 rounded-[var(--radius-sm)] bg-red-600 hover:bg-red-700 text-white font-semibold shadow-xs"
+              >
+                {deletingFreelancerLoading ? 'Deleting...' : 'Confirm Delete'}
+              </button>
             </div>
           </div>
         </div>
