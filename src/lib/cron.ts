@@ -63,9 +63,9 @@ export function startCronJobs() {
   cron.schedule(backupSchedule, async () => {
     console.log('[cron] Running automated SQLite WAL-safe database backup...')
     try {
-      const backupDir = process.env.BACKUP_DIR || path.join(process.cwd(), 'backups')
-      if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true })
+      const backupDir = path.join(process.cwd(), 'backups')
+      if (!fs.existsSync(/*turbopackIgnore: true*/ backupDir)) {
+        fs.mkdirSync(/*turbopackIgnore: true*/ backupDir, { recursive: true })
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16)
