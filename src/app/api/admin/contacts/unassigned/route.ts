@@ -7,7 +7,10 @@ export async function GET() {
   if (error) return error
 
   const contacts = await prisma.contact.findMany({
-    where: { assignedToId: null },
+    where: {
+      assignedToId: null,
+      deletedAt: null,
+    },
     select: {
       id: true,
       name: true,
@@ -20,7 +23,7 @@ export async function GET() {
       topic: true,
       createdAt: true,
       tags: { select: { tag: { select: { id: true, name: true } } } },
-      _count: { select: { calls: true } },
+      _count: { select: { calls: true, interactions: true } },
     },
     orderBy: [{ callPriority: 'asc' }, { createdAt: 'asc' }],
   })

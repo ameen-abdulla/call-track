@@ -15,19 +15,29 @@ export async function GET() {
   const [todaysCalls, queue, followUps, unreadCount] = await Promise.all([
     // Activities due today
     prisma.activity.findMany({
-      where: { agentId, dueDate: { gte: today, lt: tomorrow }, status: { in: ['pending', 'overdue'] } },
+      where: {
+        agentId,
+        dueDate: { gte: today, lt: tomorrow },
+        status: { in: ['pending', 'overdue'] },
+        contact: { deletedAt: null },
+      },
       include: { contact: { include: { tags: { include: { tag: true } } } } },
       orderBy: { dueDate: 'asc' },
     }),
     // Queued contacts (assigned but not yet called)
     prisma.contact.findMany({
-      where: { assignedToId: agentId, status: { in: ['queued', 'new'] } },
+      where: { assignedToId: agentId, status: { in: ['queued', 'new'] }, deletedAt: null },
       include: { tags: { include: { tag: true } } },
       orderBy: [{ callPriority: 'asc' }, { updatedAt: 'desc' }],
     }),
     // Follow-ups due (overdue activities)
     prisma.activity.findMany({
-      where: { agentId, status: { in: ['pending', 'overdue'] }, dueDate: { lte: new Date() } },
+      where: {
+        agentId,
+        status: { in: ['pending', 'overdue'] },
+        dueDate: { lte: new Date() },
+        contact: { deletedAt: null },
+      },
       include: { contact: { include: { tags: { include: { tag: true } } } } },
       orderBy: { dueDate: 'asc' },
     }),

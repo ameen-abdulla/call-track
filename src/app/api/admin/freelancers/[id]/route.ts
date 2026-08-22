@@ -21,6 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       suspendedAt: true,
       createdAt: true,
       assignedContacts: {
+        where: { deletedAt: null },
         select: {
           id: true,
           name: true,
@@ -31,11 +32,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           topic: true,
           company: true,
           tags: { select: { tag: { select: { id: true, name: true } } } },
-          _count: { select: { calls: true } },
+          _count: { select: { calls: true, interactions: true } },
         },
         orderBy: { updatedAt: 'desc' },
       },
-      _count: { select: { assignedContacts: true, calls: true } },
+      _count: {
+        select: {
+          assignedContacts: { where: { deletedAt: null } },
+          calls: true,
+          interactions: true,
+        },
+      },
     },
   })
 

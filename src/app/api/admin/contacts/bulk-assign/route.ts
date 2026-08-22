@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'At least one of tagId, callPriority, or contactIds must be provided' }, { status: 400 })
   }
 
-  const where: Record<string, unknown> = {}
+  const where: Record<string, unknown> = {
+    deletedAt: null,
+  }
   if (contactIds && contactIds.length > 0) {
     where.id = { in: contactIds }
   } else {
@@ -72,7 +74,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Target must be an approved freelancer' }, { status: 400 })
   }
 
-  const where: Record<string, unknown> = {}
+  const where: Record<string, unknown> = {
+    deletedAt: null,
+  }
   if (contactIds && contactIds.length > 0) {
     where.id = { in: contactIds }
   } else {
@@ -94,7 +98,7 @@ export async function POST(req: NextRequest) {
     for (const contact of contacts) {
       await tx.contact.update({
         where: { id: contact.id },
-        data: { assignedToId: toUserId },
+        data: { assignedToId: toUserId, status: 'queued' },
       })
       await tx.assignmentHistory.create({
         data: {
@@ -106,6 +110,21 @@ export async function POST(req: NextRequest) {
         },
       })
     }
+
+    await tx.activityLog.create({
+      data: {
+        actorId: session!.user.id,
+        action: 'BULK_ASSIGN',
+        targetType: 'User',
+        targetId: toUserId,
+        metadata: JSON.stringify({
+          assignedCount: contacts.length,
+          targetFreelancer: target.name,
+          tagId,
+          callPriority,
+        }),
+      },
+    })
   })
 
   return NextResponse.json({ assigned: contacts.length })

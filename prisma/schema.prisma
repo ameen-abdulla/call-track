@@ -19,6 +19,12 @@ enum FreelancerStatus {
   SUSPENDED
 }
 
+enum InteractionType {
+  CALL
+  EMAIL
+  MEETING
+}
+
 model User {
   id               String            @id @default(cuid())
   name             String
@@ -46,30 +52,38 @@ model User {
   assignmentsFrom   AssignmentHistory[] @relation("AssignmentFrom")
   assignmentsTo     AssignmentHistory[] @relation("AssignmentTo")
   assignmentsBy     AssignmentHistory[] @relation("AssignmentBy")
+  callAttempts      CallAttempt[]
+  interactions      Interaction[]
+  activityLogs      ActivityLog[]
 }
 
 model Contact {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
   phone        String
   phone2       String?
   email        String?
   company      String?
-  source       String?  // actual source e.g. "MOI + official website"
-  callPriority String?  // from CSV call_priority: "A" | "B"
-  status       String   @default("new") // new|queued|contacted|follow_up|converted|lost
+  source       String?   // actual source e.g. "MOI + official website"
+  callPriority String?   // from CSV call_priority: "A" | "B"
+  status       String    @default("new") // new|queued|contacted|follow_up|converted|lost
   assignedToId String?
   topic        String?
   createdById  String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime? // soft delete timestamp
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  assignedTo  User?               @relation("AssignedTo", fields: [assignedToId], references: [id])
-  createdBy   User                @relation("CreatedContacts", fields: [createdById], references: [id])
-  calls       Call[]
-  activities  Activity[]
-  tags        ContactTag[]
-  assignments AssignmentHistory[]
+  assignedTo   User?               @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy    User                @relation("CreatedContacts", fields: [createdById], references: [id])
+  calls        Call[]
+  activities   Activity[]
+  tags         ContactTag[]
+  assignments  AssignmentHistory[]
+  callAttempts CallAttempt[]
+  interactions Interaction[]
+
+  @@index([deletedAt])
 }
 
 model Tag {
@@ -101,6 +115,64 @@ model AssignmentHistory {
   fromUser  User?   @relation("AssignmentFrom", fields: [fromUserId], references: [id])
   toUser    User?   @relation("AssignmentTo", fields: [toUserId], references: [id])
   changedBy User    @relation("AssignmentBy", fields: [changedById], references: [id])
+}
+
+model CallAttempt {
+  id           String   @id @default(cuid())
+  contactId    String
+  contact      Contact  @relation(fields: [contactId], references: [id])
+  freelancerId String
+  freelancer   User     @relation(fields: [freelancerId], references: [id])
+  triggeredAt  DateTime @default(now())
+  method       String   // "tel_link_click"
+  userAgent    String?
+  ipHash       String?  // hashed IP for privacy-safe abuse detection
+
+  interactions Interaction[]
+
+  @@index([contactId])
+  @@index([freelancerId])
+  @@index([triggeredAt])
+}
+
+model Interaction {
+  id                   String          @id @default(cuid())
+  contactId            String
+  contact              Contact         @relation(fields: [contactId], references: [id])
+  freelancerId         String
+  freelancer           User            @relation(fields: [freelancerId], references: [id])
+  type                 InteractionType
+  connected            Boolean?        // for CALL: did the prospect answer?
+  callAttemptId        String?
+  callAttempt          CallAttempt?    @relation(fields: [callAttemptId], references: [id])
+  response             String?         // from Response lookup list
+  interestArea         String?         // from Interest Area lookup list
+  nextActivityRequired Boolean         @default(false)
+  nextActivityDate     DateTime?
+  nextActivity         String?
+  notes                String?
+  occurredAt           DateTime        @default(now())
+  createdAt            DateTime        @default(now())
+
+  @@index([contactId])
+  @@index([freelancerId])
+  @@index([type])
+  @@index([occurredAt])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id])
+  action     String   // e.g. "CONTACT_EDITED", "CONTACT_DELETED", "CONTACT_RESTORED", "FREELANCER_APPROVED", "BULK_ASSIGN"
+  targetType String   // "Contact" | "User" | "Tag" | etc.
+  targetId   String?
+  metadata   String?  // JSON string of before/after or relevant details
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Call {

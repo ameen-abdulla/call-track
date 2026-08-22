@@ -1,8 +1,10 @@
 import cron from 'node-cron'
 import { prisma } from './db'
+import fs from 'fs'
+import path from 'path'
 
 export function startCronJobs() {
-  // Hourly: mark overdue activities and notify agents
+  // 1. Hourly: mark overdue activities and notify agents
   cron.schedule('0 * * * *', async () => {
     console.log('[cron] Running overdue check...')
     try {
@@ -27,7 +29,7 @@ export function startCronJobs() {
     }
   })
 
-  // Daily 8am: remind agents of activities due today
+  // 2. Daily 8am: remind agents of activities due today
   cron.schedule('0 8 * * *', async () => {
     console.log('[cron] Running daily due-today reminder...')
     try {
@@ -53,6 +55,28 @@ export function startCronJobs() {
       console.log(`[cron] Sent ${dueToday.length} due-today reminders`)
     } catch (err) {
       console.error('[cron] Error running daily reminder:', err)
+    }
+  })
+
+  // 3. Automated SQLite WAL-safe Database Backup Job
+  const backupSchedule = process.env.BACKUP_CRON_SCHEDULE || '0 2 * * *' // Default daily at 2:00 AM
+  cron.schedule(backupSchedule, async () => {
+    console.log('[cron] Running automated SQLite WAL-safe database backup...')
+    try {
+      const backupDir = process.env.BACKUP_DIR || path.join(process.cwd(), 'backups')
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true })
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16)
+      const backupFilePath = path.join(backupDir, `calltrack-backup-${timestamp}.db`)
+      const normalizedPath = backupFilePath.replace(/\\/g, '/')
+
+      // VACUUM INTO creates a zero-corruption point-in-time snapshot of SQLite in WAL mode
+      await prisma.$executeRawUnsafe(`VACUUM INTO '${normalizedPath}'`)
+      console.log(`[cron] ✅ SQLite backup created successfully at: ${backupFilePath}`)
+    } catch (err) {
+      console.error('[cron] ❌ Error executing automated SQLite database backup:', err)
     }
   })
 }

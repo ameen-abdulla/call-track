@@ -31,9 +31,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // merge baseWhere with search/status/tag/priority filters
+  // merge baseWhere with search/status/tag/priority filters and ensure soft-deleted contacts are excluded
   const where: Record<string, unknown> = {
     ...baseWhere,
+    deletedAt: null,
     ...(status ? { status } : {}),
     ...(tagId ? { tags: { some: { tagId } } } : {}),
     ...(callPriority ? { callPriority } : {}),
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
     include: {
       tags: { include: { tag: true } },
       assignedTo: { select: { id: true, name: true, email: true, freelancerStatus: true } },
-      _count: { select: { calls: true } },
+      _count: { select: { calls: true, interactions: true } },
     },
     orderBy: [{ callPriority: 'asc' }, { updatedAt: 'desc' }],
   })
@@ -77,29 +78,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 })
   }
 
-  const contact = await prisma.contact.create({
-    data: {
-      name,
-      phone,
-      phone2: phone2 || null,
-      email,
-      company,
-      source,
-      status: status || (assignedToId ? 'queued' : 'new'),
-      topic,
-      callPriority: callPriority || null,
-      assignedToId: assignedToId || null,
-      createdById: session!.user.id,
-      ...(tagIds && Array.isArray(tagIds) && tagIds.length > 0 ? {
-        tags: {
-          create: tagIds.map((tId: string) => ({ tagId: tId })),
-        },
-      } : {}),
-    },
-    include: {
-      tags: { include: { tag: true } },
-      assignedTo: { select: { id: true, name: true } },
-    },
+  const contact = await prisma.$transaction(async (tx) => {
+    const newContact = await tx.contact.create({
+      data: {
+        name,
+        phone,
+        phone2: phone2 || null,
+        email,
+        company,
+        source,
+        status: status || (assignedToId ? 'queued' : 'new'),
+        topic,
+        callPriority: callPriority || null,
+        assignedToId: assignedToId || null,
+        createdById: session!.user.id,
+        ...(tagIds && Array.isArray(tagIds) && tagIds.length > 0 ? {
+          tags: {
+            create: tagIds.map((tId: string) => ({ tagId: tId })),
+          },
+        } : {}),
+      },
+      include: {
+        tags: { include: { tag: true } },
+        assignedTo: { select: { id: true, name: true } },
+      },
+    })
+
+    await tx.activityLog.create({
+      data: {
+        actorId: session!.user.id,
+        action: 'CONTACT_CREATED',
+        targetType: 'Contact',
+        targetId: newContact.id,
+        metadata: JSON.stringify({ contactName: newContact.name, assignedToId }),
+      },
+    })
+
+    return newContact
   })
+
   return NextResponse.json(contact, { status: 201 })
 }
