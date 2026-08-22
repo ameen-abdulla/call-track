@@ -50,6 +50,7 @@ interface Freelancer {
   id: string
   name: string
   email: string
+  phone?: string | null
   freelancerStatus: string | null
   _count?: { assignedContacts: number; calls: number }
 }
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
 
   // Modals
   const [showAddContact, setShowAddContact] = useState(false)
+  const [showAddFreelancer, setShowAddFreelancer] = useState(false)
   const [showAssign, setShowAssign] = useState<Contact | null>(null)
   const [showContactDetail, setShowContactDetail] = useState<Contact | null>(null)
   const [editingAgent, setEditingAgent] = useState<{ id: string; name: string } | null>(null)
@@ -94,6 +96,11 @@ export default function AdminDashboard() {
     name: '', phone: '', phone2: '', email: '', company: '', source: '', topic: '', callPriority: '', assignedToId: '', tagIds: [] as string[]
   })
   const [addingContact, setAddingContact] = useState(false)
+
+  // Add freelancer form
+  const [newFreelancer, setNewFreelancer] = useState({ name: '', email: '', phone: '', password: '', applicationNote: '' })
+  const [creatingFreelancer, setCreatingFreelancer] = useState(false)
+  const [createFreelancerError, setCreateFreelancerError] = useState('')
 
   // Assign form
   const [assignAgentId, setAssignAgentId] = useState('')
@@ -165,6 +172,31 @@ export default function AdminDashboard() {
     refreshAll()
   }
 
+  async function handleCreateFreelancer(e: React.FormEvent) {
+    e.preventDefault()
+    setCreatingFreelancer(true)
+    setCreateFreelancerError('')
+    try {
+      const res = await fetch('/api/admin/freelancers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newFreelancer),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setCreateFreelancerError(data.error || 'Failed to create freelancer')
+      } else {
+        setShowAddFreelancer(false)
+        setNewFreelancer({ name: '', email: '', phone: '', password: '', applicationNote: '' })
+        refreshAll()
+      }
+    } catch {
+      setCreateFreelancerError('Error connecting to server.')
+    } finally {
+      setCreatingFreelancer(false)
+    }
+  }
+
   async function handleAssign() {
     if (!showAssign) return
     setAssigning(true)
@@ -230,7 +262,7 @@ export default function AdminDashboard() {
               href="/admin/freelancers"
               className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 hover:text-white transition-colors border border-gray-700 min-h-[36px]"
             >
-              Freelancers
+              Freelancers ({freelancers.length})
               {pendingFreelancers > 0 && (
                 <span className="bg-yellow-950 text-yellow-400 border border-yellow-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
                   {pendingFreelancers} Pending
@@ -241,12 +273,13 @@ export default function AdminDashboard() {
               href="/admin/tags"
               className="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 hover:text-white transition-colors border border-gray-700 min-h-[36px] flex items-center"
             >
-              Tags
+              Tags ({tags.length})
             </Link>
             <Link
               href="/admin/contacts/unassigned"
-              className="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-300 hover:text-white transition-colors border border-gray-700 min-h-[36px] flex items-center"
+              className="px-3 py-1.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 text-xs font-medium text-amber-300 hover:text-amber-200 transition-colors border border-amber-800/80 min-h-[36px] flex items-center gap-1.5"
             >
+              <UserX className="w-3.5 h-3.5" />
               Unassigned Pool
             </Link>
             <NotificationBell />
@@ -274,12 +307,12 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Tabs */}
+        {/* Main Navigation Tabs */}
         <div className="flex gap-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-sm overflow-hidden">
           {[
-            { key: 'contacts', label: 'All Contacts' },
+            { key: 'contacts', label: 'All Contacts & Assignment' },
             { key: 'overdue', label: `Overdue Follow-ups (${overdueList.length})` },
-            { key: 'performance', label: 'Team Performance' },
+            { key: 'performance', label: 'Team & Freelancers' },
           ].map(t => (
             <button
               key={t.key}
@@ -296,6 +329,56 @@ export default function AdminDashboard() {
         {/* ===================== CONTACTS TAB ===================== */}
         {tab === 'contacts' && (
           <div className="space-y-3">
+            {/* Quick 1-Click Segmented Toggle (All / Unassigned / Assigned) */}
+            <div className="grid grid-cols-3 gap-2 p-1.5 bg-gray-900 border border-gray-800 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setFilterAssignment('all')}
+                className={`py-3 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+                  filterAssignment === 'all'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-950 ring-1 ring-blue-400'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <span>📋 All Contacts</span>
+                <span className="bg-black/30 px-2 py-0.5 rounded-full text-[11px]">{contacts.length}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFilterAssignment('unassigned')}
+                className={`py-3 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+                  filterAssignment === 'unassigned'
+                    ? 'bg-amber-600 text-white shadow-md shadow-amber-950 ring-1 ring-amber-400'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <UserX className="w-4 h-4 text-amber-300" />
+                  Unassigned Pool
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${filterAssignment === 'unassigned' ? 'bg-black/30' : unassignedCount > 0 ? 'bg-amber-950 text-amber-300 border border-amber-800' : 'bg-gray-800'}`}>
+                  {unassignedCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFilterAssignment('assigned')}
+                className={`py-3 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+                  filterAssignment === 'assigned'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-950 ring-1 ring-indigo-400'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-green-300" />
+                  Assigned Leads
+                </span>
+                <span className="bg-black/30 px-2 py-0.5 rounded-full text-[11px] font-bold">{assignedCount}</span>
+              </button>
+            </div>
+
             {/* Filter and Search Bar */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-3 space-y-3">
               <div className="flex gap-2 flex-wrap items-center">
@@ -311,20 +394,16 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                {/* Assignment Filter */}
+                {/* Specific Freelancer Filter */}
                 <select
-                  value={filterAssignment}
-                  onChange={e => setFilterAssignment(e.target.value)}
+                  value={filterAssignment.startsWith('all') || filterAssignment === 'assigned' || filterAssignment === 'unassigned' ? '' : filterAssignment}
+                  onChange={e => setFilterAssignment(e.target.value || 'all')}
                   className="px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm min-h-[42px] focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">👥 All Assignment Statuses</option>
-                  <option value="unassigned">⚠️ Unassigned Only</option>
-                  <option value="assigned">👤 Assigned Only</option>
-                  <optgroup label="Filter by Freelancer">
-                    {approvedFreelancers.map(f => (
-                      <option key={f.id} value={f.id}>👤 {f.name}</option>
-                    ))}
-                  </optgroup>
+                  <option value="">👤 Filter by Specific Freelancer</option>
+                  {approvedFreelancers.map(f => (
+                    <option key={f.id} value={f.id}>{f.name} ({f._count?.assignedContacts ?? 0})</option>
+                  ))}
                 </select>
 
                 {/* Status Filter */}
@@ -375,17 +454,24 @@ export default function AdminDashboard() {
                 </label>
               </div>
 
-              {/* Live Count Pill Summary */}
-              <div className="flex items-center gap-3 pt-2 border-t border-gray-800/80 text-xs text-gray-400 flex-wrap">
-                <span>Showing <strong>{contacts.length}</strong> contacts</span>
-                <span className="text-gray-600">•</span>
-                <span className="flex items-center gap-1 text-green-400">
-                  <UserCheck className="w-3.5 h-3.5" /> <strong>{assignedCount}</strong> Assigned
-                </span>
-                <span className="text-gray-600">•</span>
-                <span className="flex items-center gap-1 text-amber-400">
-                  <UserX className="w-3.5 h-3.5" /> <strong>{unassignedCount}</strong> Unassigned
-                </span>
+              {/* Active Filter Indicators */}
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-800/80 text-xs text-gray-400 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span>Showing <strong>{contacts.length}</strong> contacts</span>
+                  <span className="text-gray-600">•</span>
+                  <span className="text-green-400"><strong>{assignedCount}</strong> Assigned</span>
+                  <span className="text-gray-600">•</span>
+                  <span className="text-amber-400"><strong>{unassignedCount}</strong> Unassigned</span>
+                </div>
+
+                {(search || filterAssignment !== 'all' || filterStatus || filterPriority || filterTag) && (
+                  <button
+                    onClick={() => { setSearch(''); setFilterAssignment('all'); setFilterStatus(''); setFilterPriority(''); setFilterTag('') }}
+                    className="text-blue-400 hover:underline text-xs"
+                  >
+                    Clear all filters
+                  </button>
+                )}
               </div>
             </div>
 
@@ -396,13 +482,13 @@ export default function AdminDashboard() {
               ) : contacts.length === 0 ? (
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400 space-y-2">
                   <p className="text-2xl">🔍</p>
-                  <p className="font-semibold text-white">No contacts match the current filters</p>
-                  <p className="text-xs text-gray-500">Try clearing search or changing the assignment/status dropdowns</p>
+                  <p className="font-semibold text-white">No contacts found for current filter</p>
+                  <p className="text-xs text-gray-500">Try switching between Unassigned / Assigned or clearing the search</p>
                   <button
                     onClick={() => { setSearch(''); setFilterAssignment('all'); setFilterStatus(''); setFilterPriority(''); setFilterTag('') }}
                     className="mt-2 text-xs text-blue-400 hover:underline"
                   >
-                    Reset all filters
+                    Show all contacts
                   </button>
                 </div>
               ) : (
@@ -411,7 +497,11 @@ export default function AdminDashboard() {
                   return (
                     <div
                       key={contact.id}
-                      className="bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-800 hover:border-gray-700 transition-colors"
+                      className={`bg-gray-900 rounded-xl p-4 shadow-sm border transition-all ${
+                        !assigned
+                          ? 'border-amber-900/40 hover:border-amber-700/60'
+                          : 'border-gray-800 hover:border-gray-700'
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         {/* Main Contact Info */}
@@ -436,12 +526,14 @@ export default function AdminDashboard() {
 
                             {/* Assignment Badge */}
                             {assigned ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-950 text-indigo-300 border border-indigo-800 flex items-center gap-1">
-                                <UserCheck className="w-3 h-3" /> {assigned.name}
+                              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800 flex items-center gap-1">
+                                <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+                                Assigned: {assigned.name}
                               </span>
                             ) : (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-950/80 text-amber-300 border border-amber-800 flex items-center gap-1">
-                                <UserX className="w-3 h-3" /> Unassigned
+                              <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-950 text-amber-300 border border-amber-800 flex items-center gap-1">
+                                <UserX className="w-3.5 h-3.5 text-amber-400" />
+                                UNASSIGNED
                               </span>
                             )}
                           </div>
@@ -482,20 +574,20 @@ export default function AdminDashboard() {
                               setAssignAgentId(contact.assignedTo?.id || '')
                               setAssignTopic(contact.topic || '')
                             }}
-                            className={`px-3 py-2 rounded-xl text-xs font-semibold min-h-[38px] transition-colors border ${
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold min-h-[38px] transition-colors border ${
                               assigned
                                 ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700'
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600 shadow-md shadow-indigo-950'
+                                : 'bg-green-600 text-white hover:bg-green-700 border-green-600 shadow-md shadow-green-950'
                             }`}
                           >
-                            {assigned ? 'Reassign' : 'Assign'}
+                            {assigned ? 'Reassign' : 'Assign Freelancer'}
                           </button>
 
                           <button
                             onClick={() => setShowContactDetail(contact)}
                             className="text-xs text-gray-400 hover:text-white px-2 py-1"
                           >
-                            Details →
+                            Full Details →
                           </button>
                         </div>
                       </div>
@@ -565,11 +657,22 @@ export default function AdminDashboard() {
             </div>
 
             <div className="bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-800">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-white">Freelancer Roster</h2>
-                <Link href="/admin/freelancers" className="text-xs text-blue-400 hover:underline">
-                  Manage Freelancers & Approvals →
-                </Link>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                  <h2 className="font-semibold text-white">Freelancer Roster ({freelancers.length})</h2>
+                  <p className="text-xs text-gray-400">All registered and approved caller accounts</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowAddFreelancer(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Add Freelancer
+                  </button>
+                  <Link href="/admin/freelancers" className="text-xs text-blue-400 hover:underline">
+                    Detailed Manager →
+                  </Link>
+                </div>
               </div>
 
               {freelancers.length === 0 ? (
@@ -699,6 +802,89 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* ===================== ADD FREELANCER MODAL ===================== */}
+      {showAddFreelancer && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+              <h2 className="font-bold text-white text-lg">Create New Freelancer</h2>
+              <button
+                onClick={() => setShowAddFreelancer(false)}
+                className="p-2 hover:bg-gray-800 text-gray-400 hover:text-white rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFreelancer} className="p-4 space-y-3">
+              {createFreelancerError && (
+                <div className="bg-red-950 border border-red-900 text-red-300 text-xs p-3 rounded-xl">
+                  {createFreelancerError}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-semibold text-gray-300">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. John Doe"
+                  value={newFreelancer.name}
+                  onChange={e => setNewFreelancer(p => ({ ...p, name: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-300">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. john@example.com"
+                  value={newFreelancer.email}
+                  onChange={e => setNewFreelancer(p => ({ ...p, email: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-300">Phone Number</label>
+                <input
+                  type="tel"
+                  placeholder="+974..."
+                  value={newFreelancer.phone}
+                  onChange={e => setNewFreelancer(p => ({ ...p, phone: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-300">Password * (min 8 chars)</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="••••••••"
+                  value={newFreelancer.password}
+                  onChange={e => setNewFreelancer(p => ({ ...p, password: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={creatingFreelancer || !newFreelancer.name || !newFreelancer.email || !newFreelancer.password}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors shadow-lg shadow-blue-950"
+                >
+                  {creatingFreelancer ? 'Creating Freelancer...' : 'Create Approved Freelancer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ===================== ASSIGN / REASSIGN MODAL ===================== */}
       {showAssign && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
@@ -711,9 +897,13 @@ export default function AdminDashboard() {
               <button onClick={() => setShowAssign(null)} className="p-2 hover:bg-gray-800 text-gray-400 hover:text-white rounded-lg min-h-[44px]">✕</button>
             </div>
             <div className="p-4 space-y-3">
-              {showAssign.assignedTo && (
+              {showAssign.assignedTo ? (
                 <div className="bg-indigo-950/50 border border-indigo-800/80 rounded-xl p-3 text-xs text-indigo-300">
                   Currently assigned to: <strong>{showAssign.assignedTo.name}</strong>
+                </div>
+              ) : (
+                <div className="bg-amber-950/40 border border-amber-800/60 rounded-xl p-3 text-xs text-amber-300">
+                  Currently unassigned (in pool).
                 </div>
               )}
 
@@ -863,7 +1053,7 @@ function ContactDetail({ contact, onOpenAssign }: { contact: Contact; onOpenAssi
             ) : (
               <>
                 <UserX className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-300">Unassigned (Pool)</span>
+                <span className="text-amber-300">Unassigned (In Pool)</span>
               </>
             )}
           </p>
@@ -872,13 +1062,13 @@ function ContactDetail({ contact, onOpenAssign }: { contact: Contact; onOpenAssi
           onClick={onOpenAssign}
           className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
         >
-          {contact.assignedTo ? 'Change Assignee' : 'Assign Contact'}
+          {contact.assignedTo ? 'Change Assignee' : 'Assign Freelancer'}
         </button>
       </div>
 
       {/* Grid of contact fields */}
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div><span className="text-gray-400">Phone</span><p className="font-medium text-white">{contact.phone}</p></div>
+        <div><span className="text-gray-400">Primary Phone</span><p className="font-medium text-white">{contact.phone}</p></div>
         {contact.phone2 && (
           <div><span className="text-gray-400">Mobile / WhatsApp</span><p className="font-medium text-white">{contact.phone2}</p></div>
         )}
