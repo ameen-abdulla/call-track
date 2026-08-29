@@ -17,9 +17,9 @@
    ```
    npm run start
    ```
-4. Open your browser and go to **http://localhost:3000**
+4. Open your browser and go to **https://calltrack.flexibook.ai**
 
-> **To access from a phone or another device on the same WiFi**, use the computer's local IP address instead of `localhost` (e.g. `http://192.168.1.10:3000`). Your IT person can help set up a permanent URL using Cloudflare Tunnel.
+> **The app is hosted at [https://calltrack.flexibook.ai](https://calltrack.flexibook.ai)** — accessible from any device on any network.
 
 ---
 

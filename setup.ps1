@@ -31,7 +31,7 @@ try {
 
 # Create START shortcut on Desktop
 $startShortcut = Join-Path $desktopPath "Start Call Track.lnk"
-$startCmd = "docker compose -f `"$appDir\docker-compose.yml`" up -d ; Start-Sleep -Seconds 8 ; Start-Process 'http://localhost:3000'"
+$startCmd = "docker compose -f `"$appDir\docker-compose.yml`" up -d ; Start-Sleep -Seconds 8 ; Start-Process 'https://calltrack.flexibook.ai'"
 
 $wsh = New-Object -ComObject WScript.Shell
 $sc = $wsh.CreateShortcut($startShortcut)

@@ -26,7 +26,7 @@ npm run db:seed
 npm run dev
 ```
 
-Open http://localhost:3000
+Open https://calltrack.flexibook.ai
 
 ### Default Login Credentials
 
