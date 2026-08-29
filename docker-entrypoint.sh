@@ -15,5 +15,5 @@ if [ ! -f /data/.seeded ]; then
   echo "[Call Track] Seed complete."
 fi
 
-echo "[Call Track] Starting server on https://calltrack.flexibook.ai"
+echo "[Call Track] Starting server on http://localhost:3000"
 exec npm start
