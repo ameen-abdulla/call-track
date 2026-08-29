@@ -5,16 +5,22 @@ export default auth((req) => {
   const { pathname } = req.nextUrl
   const session = req.auth
 
-  // Public routes
+  // Public routes — use startsWith('/login') so query strings like /login?error=... are also public
   const isPublic =
-    pathname === '/login' ||
-    pathname === '/register' ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
     pathname === '/auth/signed-out' ||
-    pathname.startsWith('/api/auth') ||
-    pathname.startsWith('/api/auth/register')
+    pathname.startsWith('/api/auth')
 
   if (isPublic) {
-    if (session && (pathname === '/login' || pathname === '/register')) {
+    // Only bounce away from /login if the user is actually allowed in
+    // (ADMIN always allowed; FREELANCER only if APPROVED)
+    // Non-approved freelancers must stay on /login to avoid a redirect loop
+    if (
+      session &&
+      (pathname.startsWith('/login') || pathname.startsWith('/register')) &&
+      (session.user.role === 'ADMIN' || session.user.freelancerStatus === 'APPROVED')
+    ) {
       const dest = session.user.role === 'ADMIN' ? '/admin' : '/freelancer'
       return NextResponse.redirect(new URL(dest, req.url))
     }
