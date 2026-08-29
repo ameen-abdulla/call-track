@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Trash2, UserCheck, ShieldAlert, Phone, Mail, RotateCcw, AlertTriangle, Users } from 'lucide-react'
+import { ArrowLeft, Trash2, UserCheck, ShieldAlert, Phone, Mail, RotateCcw, AlertTriangle, Users, Pencil } from 'lucide-react'
 
 interface FreelancerDetail {
   id: string
@@ -56,6 +56,16 @@ export default function FreelancerDetailPage({ params }: { params: Promise<{ id:
   const [deletingModal, setDeletingModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState('')
+  // Edit details state
+  const [showEdit, setShowEdit] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+  // Reset password state
+  const [resettingPw, setResettingPw] = useState(false)
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -112,6 +122,43 @@ export default function FreelancerDetailPage({ params }: { params: Promise<{ id:
       alert('Error connecting to server')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function handleEditDetails() {
+    setSaving(true)
+    setEditError('')
+    const body: Record<string, string> = {}
+    if (editName.trim()) body.name = editName.trim()
+    if (editEmail.trim()) body.email = editEmail.trim()
+    body.phone = editPhone.trim() // allow clearing
+
+    const res = await fetch(`/api/admin/freelancers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (res.ok) {
+      setFreelancer(f => f ? { ...f, name: data.name, email: data.email, phone: data.phone ?? null } : f)
+      setShowEdit(false)
+      setMessage('Freelancer details updated.')
+    } else {
+      setEditError(data.error || 'Failed to save changes')
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!confirm('Reset this freelancer\'s password? A new temporary password will be generated.')) return
+    setResettingPw(true)
+    const res = await fetch(`/api/admin/freelancers/${id}/reset-password`, { method: 'POST' })
+    const data = await res.json()
+    setResettingPw(false)
+    if (res.ok) {
+      setTempPassword(data.tempPassword)
+    } else {
+      setMessage(data.error || 'Failed to reset password')
     }
   }
 
@@ -188,6 +235,29 @@ export default function FreelancerDetailPage({ params }: { params: Promise<{ id:
             )}
 
             <button
+              onClick={() => {
+                setEditName(freelancer.name)
+                setEditEmail(freelancer.email)
+                setEditPhone(freelancer.phone ?? '')
+                setEditError('')
+                setShowEdit(!showEdit)
+              }}
+              className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit Details
+            </button>
+
+            <button
+              onClick={handleResetPassword}
+              disabled={resettingPw}
+              className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--text-secondary)] border border-[var(--border)] text-xs font-semibold transition-colors flex items-center gap-1"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              {resettingPw ? 'Resetting...' : 'Reset Password'}
+            </button>
+
+            <button
               onClick={() => setDeletingModal(true)}
               className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 text-xs font-semibold transition-colors flex items-center gap-1 ml-auto"
             >
@@ -196,6 +266,65 @@ export default function FreelancerDetailPage({ params }: { params: Promise<{ id:
             </button>
           </div>
         </div>
+
+        {/* Edit Details Form */}
+        {showEdit && (
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-3 text-xs">
+            <h3 className="font-semibold text-[var(--text-primary)]">Edit Freelancer Details</h3>
+            {editError && (
+              <div className="text-red-600 dark:text-red-400 text-xs">{editError}</div>
+            )}
+            <div className="space-y-2">
+              <div>
+                <label className="block text-[var(--text-secondary)] mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                  placeholder="Full name"
+                />
+              </div>
+              <div>
+                <label className="block text-[var(--text-secondary)] mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={e => setEditEmail(e.target.value)}
+                  className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                  placeholder="Email address"
+                />
+              </div>
+              <div>
+                <label className="block text-[var(--text-secondary)] mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={editPhone}
+                  onChange={e => setEditPhone(e.target.value)}
+                  className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                  placeholder="Phone number (optional)"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowEdit(false); setEditError('') }}
+                className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border)] text-xs text-[var(--text-secondary)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEditDetails}
+                disabled={saving}
+                className="px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold text-xs shadow-xs"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Bulk Reassign Card */}
         {showReassign && (
@@ -309,6 +438,44 @@ export default function FreelancerDetailPage({ params }: { params: Promise<{ id:
                 className="px-4 py-1.5 rounded-[var(--radius-sm)] bg-red-600 hover:bg-red-700 text-white font-semibold shadow-xs"
               >
                 {deleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Temp Password Modal */}
+      {tempPassword && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] w-full max-w-sm p-5 shadow-[var(--shadow-modal)] space-y-3 text-xs">
+            <div className="flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-[var(--accent)]" />
+              <h3 className="font-bold text-sm text-[var(--text-primary)]">Temporary Password Generated</h3>
+            </div>
+            <p className="text-[var(--text-secondary)] leading-relaxed">
+              Share this temporary password with <strong>{freelancer.name}</strong>. It won&apos;t be shown again.
+            </p>
+            <div
+              className="font-mono text-base font-bold text-center tracking-widest bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-sm)] py-3 px-4 select-all cursor-text text-[var(--text-primary)]"
+            >
+              {tempPassword}
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(tempPassword).catch(() => {})
+                }}
+                className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold text-xs"
+              >
+                Copy Password
+              </button>
+              <button
+                type="button"
+                onClick={() => setTempPassword(null)}
+                className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border)] text-xs text-[var(--text-secondary)]"
+              >
+                Done
               </button>
             </div>
           </div>

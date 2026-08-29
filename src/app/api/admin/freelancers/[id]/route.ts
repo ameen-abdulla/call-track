@@ -141,3 +141,50 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     message: `Freelancer ${user.name} was successfully removed and ${user.assignedContacts.length} contacts were returned to the unassigned pool.`,
   })
 }
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireAuth('ADMIN')
+  if (error) return error
+  const { id } = await params
+  const { name, email, phone } = await req.json()
+
+  const target = await prisma.user.findUnique({ where: { id } })
+  if (!target || target.role !== 'FREELANCER') {
+    return NextResponse.json({ error: 'Freelancer not found' }, { status: 404 })
+  }
+
+  const data: Record<string, string | null> = {}
+  if (name !== undefined) {
+    if (typeof name !== 'string' || name.trim().length < 2) {
+      return NextResponse.json({ error: 'Name must be at least 2 characters' }, { status: 400 })
+    }
+    data.name = name.trim()
+  }
+  if (email !== undefined) {
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing && existing.id !== id) {
+      return NextResponse.json({ error: 'Email already in use' }, { status: 409 })
+    }
+    data.email = email.trim()
+  }
+  if (phone !== undefined) data.phone = phone?.trim() || null
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data,
+    select: { id: true, name: true, email: true, phone: true },
+  })
+
+  await prisma.activityLog.create({
+    data: {
+      actorId: session!.user.id,
+      action: 'FREELANCER_DETAILS_EDITED',
+      targetType: 'User',
+      targetId: id,
+      metadata: JSON.stringify({ changedFields: Object.keys(data) }),
+    },
+  })
+
+  return NextResponse.json(updated)
+}
+

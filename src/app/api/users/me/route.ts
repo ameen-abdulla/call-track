@@ -6,6 +6,10 @@ export async function PUT(req: NextRequest) {
   const { error, session } = await requireAuth()
   if (error) return error
 
+  if (session!.user.role === 'FREELANCER') {
+    return NextResponse.json({ error: 'Contact an administrator to update your details' }, { status: 403 })
+  }
+
   const { name } = await req.json()
   if (!name || typeof name !== 'string' || name.trim().length < 2) {
     return NextResponse.json({ error: 'Name must be at least 2 characters' }, { status: 400 })

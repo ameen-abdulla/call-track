@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Phone, Clock, AlertTriangle, CheckCircle, Pencil, ArrowRight } from 'lucide-react'
+import { Phone, Clock, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react'
 import { NotificationBell } from '@/components/notification-bell'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { signOut, useSession } from 'next-auth/react'
@@ -40,24 +40,6 @@ export default function FreelancerDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [activeTab, setActiveTab] = useState<'queue' | 'schedule' | 'followups'>('queue')
   const [loading, setLoading] = useState(true)
-  const [showEditName, setShowEditName] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [savingName, setSavingName] = useState(false)
-
-  async function editName() {
-    if (!newName.trim()) return
-    setSavingName(true)
-    const res = await fetch('/api/users/me', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName.trim() }),
-    })
-    setSavingName(false)
-    if (res.ok) {
-      setShowEditName(false)
-      window.location.reload()
-    }
-  }
 
   useEffect(() => {
     let ignore = false
@@ -110,13 +92,6 @@ export default function FreelancerDashboard() {
               <h1 className="font-bold text-sm text-[var(--text-primary)] truncate">
                 {session?.user?.name || 'Caller'}
               </h1>
-              <button
-                onClick={() => { setNewName(session?.user?.name || ''); setShowEditName(true) }}
-                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[var(--radius-sm)]"
-                title="Edit display name"
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
             </div>
             <p className="text-[10px] text-[var(--text-muted)]">
               {new Date().toLocaleDateString('en-AE', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -329,40 +304,6 @@ export default function FreelancerDashboard() {
           </>
         )}
       </div>
-
-      {/* Edit Name Modal */}
-      {showEditName && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] w-full max-w-xs p-4 shadow-[var(--shadow-modal)] space-y-3">
-            <h3 className="font-bold text-xs text-[var(--text-primary)]">Edit Display Name</h3>
-            <input
-              type="text"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)]"
-              placeholder="Your name"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowEditName(false)}
-                className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border)] text-xs text-[var(--text-secondary)]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={editName}
-                disabled={savingName || !newName.trim()}
-                className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] text-white text-xs font-semibold"
-              >
-                {savingName ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   )
 }
