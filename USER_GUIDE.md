@@ -72,8 +72,17 @@ Your dashboard has three sections you can switch between by tapping the tabs at 
 
 This is your main working list — contacts the Admin has assigned to you that you haven't called yet.
 
+**Urgency Summary Strip & Sort Button:**
+At the top of your queue, you will see a colored breakdown of your queue:
+- **Red (Urgent)**: Assigned more than 72 hours ago — contact immediately!
+- **Orange (Pending)**: Assigned 24 to 72 hours ago — approaching SLA.
+- **Green (Fresh)**: Assigned within the last 24 hours.
+- **Attempted**: A call link has already been tapped for this lead.
+- **Sort Toggle**: Tap the **"Urgent First"** / **"Priority Sort"** button to sort your leads by urgency (most overdue first) or by default priority.
+
 **What you'll see on each card:**
 - The contact's name and phone number
+- An **Urgency Badge** (e.g. *Fresh*, *Pending: 30h*, *Urgent: 74h*, or *Attempted*) — hover or tap to see exact details
 - Their company (if added)
 - A **blue box** showing the **Topic to discuss** — this is what the Admin wants you to talk about on this call. Read this before calling!
 - A green **Call** button
@@ -83,7 +92,7 @@ This is your main working list — contacts the Admin has assigned to you that y
 2. Tap the green **Call** button on the contact's card
 3. You will go to the **Call & Feedback screen** for that contact
 
-**Quick shortcut:** The blue **"Call Next"** button at the bottom right of the screen jumps straight into the first person in your queue.
+**Quick shortcut:** The **"Next Lead in Queue"** card at the top shows the highest priority lead and its urgency badge. Tap **Start Call Session** to begin immediately.
 
 ---
 
@@ -275,11 +284,12 @@ Each row shows:
 
 ---
 
-### Tab 3: Performance
+### Tab 3: Performance & Analytics
 
-A quick view of team performance:
-- Calls today, conversion rate, total contacts, overdue count
-- List of all active secretaries
+A comprehensive view of team productivity and pipeline health:
+- **Lead Outreach Urgency Meter**: Monitors response times for assigned leads awaiting first outreach. Shows **Critical (>72h)**, **Pending (24–72h)**, **Fresh (<24h)**, and **Attempted** outreach counts, along with a per-caller progress breakdown. Click any card to drill down into those contacts.
+- **Top KPIs**: Calls logged today, conversion rate, total prospects, and follow-ups due.
+- **Caller Workload Table**: Workload, connected call rate, and verified call percentages per caller.
 
 ---
 
@@ -287,19 +297,20 @@ A quick view of team performance:
 
 ```
 Morning:
-  1. Open app → check KPI strip for overnight changes
-  2. Go to Overdue tab → send reminders for anything critical
-  3. Add any new contacts from leads received
+  1. Open app → check KPI strip and the Lead Outreach Urgency Meter in Analytics
+  2. Check for Critical (>72h) leads: reassign to an available caller if one caller is bottlenecked
+  3. Go to Overdue tab → send reminders for anything critical
+  4. Add or import new contacts from leads received
 
 During the day:
-  4. Assign new contacts: Contacts tab → Assign → set topic
-  5. Check KPI strip — Calls Today should be going up
-  6. Monitor Overdue tab and send reminders as needed
+  5. Assign new contacts: Contacts tab → Assign → set topic
+  6. Check KPI strip — Calls Today should be going up
+  7. Monitor Overdue tab and send reminders as needed
 
 End of day/week:
-  7. Filter Contacts by status to see overall pipeline health
-  8. Check Conversion Rate trend
-  9. Add any new contacts for tomorrow's queue
+  8. Filter Contacts by status and check Urgency Badges across the team
+  9. Check Conversion Rate trend and sales funnel drop-offs
+  10. Add any new contacts for tomorrow's queue
 ```
 
 ---

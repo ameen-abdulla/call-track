@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
+import { getContactsUrgency } from '@/lib/urgency'
 
 export async function GET(req: NextRequest) {
   const { error, session } = await requireAuth()
@@ -64,7 +65,18 @@ export async function GET(req: NextRequest) {
     orderBy: [{ callPriority: 'asc' }, { updatedAt: 'desc' }],
   })
 
-  return NextResponse.json(contacts)
+  const urgencyMap = await getContactsUrgency(contacts)
+  const contactsWithUrgency = contacts.map(c => ({
+    ...c,
+    urgency: urgencyMap.get(c.id) || {
+      status: 'unassigned',
+      assignedAt: null,
+      hoursElapsed: null,
+      firstAttemptAt: null,
+    },
+  }))
+
+  return NextResponse.json(contactsWithUrgency)
 }
 
 export async function POST(req: NextRequest) {
@@ -103,6 +115,18 @@ export async function POST(req: NextRequest) {
         assignedTo: { select: { id: true, name: true } },
       },
     })
+
+    if (assignedToId) {
+      await tx.assignmentHistory.create({
+        data: {
+          contactId: newContact.id,
+          fromUserId: null,
+          toUserId: assignedToId,
+          changedById: session!.user.id,
+          reason: 'contact_created',
+        },
+      })
+    }
 
     await tx.activityLog.create({
       data: {

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Phone, Clock, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react'
+import { Phone, Clock, AlertTriangle, CheckCircle, ArrowRight, ArrowUpDown } from 'lucide-react'
 import { NotificationBell } from '@/components/notification-bell'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { signOut, useSession } from 'next-auth/react'
+import { UrgencyBadge } from '@/components/urgency-badge'
+import { ContactUrgency } from '@/lib/urgency'
 
 interface Contact {
   id: string
@@ -17,6 +19,7 @@ interface Contact {
   company: string | null
   callPriority?: string | null
   tags?: { tag: { id: string; name: string } }[]
+  urgency?: ContactUrgency
 }
 
 interface Activity {
@@ -32,6 +35,7 @@ interface DashboardData {
   queue: Contact[]
   followUps: Activity[]
   unreadCount: number
+  urgencySummary?: { green: number; orange: number; red: number; attempted: number }
 }
 
 export default function FreelancerDashboard() {
@@ -39,6 +43,7 @@ export default function FreelancerDashboard() {
   const router = useRouter()
   const [data, setData] = useState<DashboardData | null>(null)
   const [activeTab, setActiveTab] = useState<'queue' | 'schedule' | 'followups'>('queue')
+  const [queueSort, setQueueSort] = useState<'priority' | 'urgency'>('priority')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -80,7 +85,28 @@ export default function FreelancerDashboard() {
     }
   }
 
-  const topQueueItem = data?.queue?.[0]
+  const urgencyRank = (status?: string) => {
+    if (status === 'red') return 0
+    if (status === 'orange') return 1
+    if (status === 'green') return 2
+    if (status === 'attempted') return 3
+    if (status === 'unassigned') return 4
+    return 5
+  }
+
+  const sortedQueue = [...(data?.queue || [])].sort((a, b) => {
+    if (queueSort === 'urgency') {
+      const rankA = urgencyRank(a.urgency?.status)
+      const rankB = urgencyRank(b.urgency?.status)
+      if (rankA !== rankB) return rankA - rankB
+      const hoursA = a.urgency?.hoursElapsed ?? 0
+      const hoursB = b.urgency?.hoursElapsed ?? 0
+      return hoursB - hoursA
+    }
+    return 0
+  })
+
+  const topQueueItem = sortedQueue[0]
 
   return (
     <main className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)]">
@@ -142,18 +168,58 @@ export default function FreelancerDashboard() {
       </div>
 
       <div className="max-w-md mx-auto px-4 py-4 space-y-3 pb-24">
+        {/* Urgency Summary & Sort Controls */}
+        {activeTab === 'queue' && (data?.queue?.length ?? 0) > 0 && (
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-2.5 flex items-center justify-between gap-2 shadow-xs text-xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono">
+              {data?.urgencySummary ? (
+                <>
+                  <span className={`px-1.5 py-0.5 rounded font-bold ${data.urgencySummary.red > 0 ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-[var(--text-muted)]'}`}>
+                    {data.urgencySummary.red} Red
+                  </span>
+                  <span className={`px-1.5 py-0.5 rounded font-bold ${data.urgencySummary.orange > 0 ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'text-[var(--text-muted)]'}`}>
+                    {data.urgencySummary.orange} Orange
+                  </span>
+                  <span className={`px-1.5 py-0.5 rounded font-bold ${data.urgencySummary.green > 0 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'text-[var(--text-muted)]'}`}>
+                    {data.urgencySummary.green} Green
+                  </span>
+                  <span className={`px-1.5 py-0.5 rounded font-bold ${data.urgencySummary.attempted > 0 ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300' : 'text-[var(--text-muted)]'}`}>
+                    {data.urgencySummary.attempted} Attempted
+                  </span>
+                </>
+              ) : null}
+            </div>
+
+            <button
+              onClick={() => setQueueSort(queueSort === 'priority' ? 'urgency' : 'priority')}
+              className={`px-2 py-1 rounded-[var(--radius-sm)] border text-[11px] font-semibold flex items-center gap-1 shrink-0 transition-colors ${
+                queueSort === 'urgency'
+                  ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'
+                  : 'bg-[var(--bg)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-primary)]'
+              }`}
+              title="Toggle sorting between priority and urgency"
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              <span>{queueSort === 'urgency' ? 'Urgent First' : 'Priority Sort'}</span>
+            </button>
+          </div>
+        )}
+
         {/* Next Lead Banner — Most prominent task-first element */}
         {activeTab === 'queue' && topQueueItem && (
           <div className="bg-[var(--surface)] border-2 border-[var(--accent)] rounded-[var(--radius-lg)] p-4 shadow-[var(--shadow-raised)] space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded-[var(--radius-sm)]">
-                Next Lead in Queue
-              </span>
-              {topQueueItem.callPriority && (
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-[var(--radius-sm)] bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  Priority {topQueueItem.callPriority}
+            <div className="flex items-center justify-between flex-wrap gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded-[var(--radius-sm)]">
+                  Next Lead in Queue
                 </span>
-              )}
+                {topQueueItem.callPriority && (
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-[var(--radius-sm)] bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    Priority {topQueueItem.callPriority}
+                  </span>
+                )}
+              </div>
+              <UrgencyBadge urgency={topQueueItem.urgency} />
             </div>
 
             <div>
@@ -192,24 +258,25 @@ export default function FreelancerDashboard() {
           <>
             {activeTab === 'queue' && (
               <div className="space-y-2">
-                {data?.queue?.length === 0 ? (
+                {sortedQueue.length === 0 ? (
                   <div className="bg-[var(--surface)] border border-dashed border-[var(--border)] rounded-[var(--radius-md)] p-8 text-center text-xs text-[var(--text-muted)] space-y-1">
                     <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-1" />
                     <p className="font-semibold text-[var(--text-primary)] text-sm">All Assigned Leads Contacted</p>
                     <p>Check with admin for new allocations.</p>
                   </div>
                 ) : (
-                  data?.queue?.map(contact => (
+                  sortedQueue.map(contact => (
                     <div
                       key={contact.id}
                       className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-3.5 shadow-[var(--shadow-card)] flex items-start justify-between gap-3"
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-semibold text-xs text-[var(--text-primary)] truncate">{contact.name}</p>
                           {contact.callPriority && (
                             <span className="text-[9px] font-mono font-bold text-blue-600">P{contact.callPriority}</span>
                           )}
+                          <UrgencyBadge urgency={contact.urgency} compact />
                         </div>
                         {contact.company && <p className="text-[11px] text-[var(--text-muted)]">{contact.company}</p>}
                         <p className="text-xs font-mono text-[var(--text-secondary)] mt-1">{contact.phone}</p>

@@ -24,6 +24,9 @@ import { InterestAreaChart } from '@/components/analytics/interest-area-chart'
 import { FollowupPipelineCard } from '@/components/analytics/followup-pipeline-card'
 import { DataQualityPanel } from '@/components/analytics/data-quality-panel'
 import { SalesFunnelChart } from '@/components/analytics/sales-funnel-chart'
+import { UrgencyBadge } from '@/components/urgency-badge'
+import { UrgencyPanel } from '@/components/analytics/urgency-panel'
+import { ContactUrgency } from '@/lib/urgency'
 
 interface Tag {
   id: string
@@ -44,6 +47,7 @@ interface Contact {
   tags?: { tag: { id: string; name: string } }[]
   assignedTo?: { id: string; name: string; email?: string } | null
   _count?: { calls: number; interactions?: number }
+  urgency?: ContactUrgency
 }
 
 interface OverdueActivity {
@@ -675,6 +679,19 @@ export default function AdminDashboard() {
                         />
                       </div>
 
+                      {/* Lead Outreach Urgency Meter */}
+                      <UrgencyPanel
+                        data={analyticsData.urgency}
+                        onFilterClick={(statusKey) => {
+                          handleSetMainView('contacts')
+                          if (statusKey === 'unassigned') {
+                            setFilterAssignment('unassigned')
+                          } else {
+                            setFilterAssignment('assigned')
+                          }
+                        }}
+                      />
+
                       {/* Actionable Pipeline Health Inbox */}
                       <DataQualityPanel data={analyticsData.dataQuality} />
                     </div>
@@ -865,6 +882,8 @@ export default function AdminDashboard() {
                                   UNASSIGNED
                                 </span>
                               )}
+
+                              <UrgencyBadge urgency={contact.urgency} />
                             </div>
 
                             {contact.company && <p className="text-xs text-[var(--text-secondary)]">{contact.company}</p>}
@@ -1418,9 +1437,12 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] w-full max-w-lg max-h-[85vh] overflow-y-auto p-5 shadow-[var(--shadow-modal)] space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
-              <div>
-                <h3 className="font-bold text-sm text-[var(--text-primary)]">{showContactDetail.name}</h3>
-                {showContactDetail.company && <p className="text-[11px] text-[var(--text-secondary)]">{showContactDetail.company}</p>}
+              <div className="flex items-center gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--text-primary)]">{showContactDetail.name}</h3>
+                  {showContactDetail.company && <p className="text-[11px] text-[var(--text-secondary)]">{showContactDetail.company}</p>}
+                </div>
+                <UrgencyBadge urgency={showContactDetail.urgency} />
               </div>
               <button onClick={() => setShowContactDetail(null)} className="p-1 text-[var(--text-muted)]">✕</button>
             </div>

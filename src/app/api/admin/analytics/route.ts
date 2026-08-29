@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
 import { FEEDBACK_OPTIONS, INTEREST_AREAS } from '@/lib/feedback-constants'
+import { getContactsUrgency } from '@/lib/urgency'
 
 export async function GET(req: NextRequest) {
   const { error, session } = await requireAuth()
@@ -304,6 +305,68 @@ export async function GET(req: NextRequest) {
     }
   })
 
+  // --- 11. Urgency Meter Analytics ---
+  // Note: Urgency is intentionally computed over the current contactWhere-scoped set,
+  // completely ignoring the date-range filter because urgency measures current live state,
+  // not historical activity within an arbitrary past date window.
+  const urgencyMap = await getContactsUrgency(contacts)
+
+  const urgencyCounts = { green: 0, orange: 0, red: 0, attempted: 0, unassigned: 0 }
+
+  const freelancerUrgencyMap: Record<string, { freelancerId: string; name: string; green: number; orange: number; red: number; hasEligible: boolean }> = {}
+  freelancers.forEach(f => {
+    freelancerUrgencyMap[f.id] = {
+      freelancerId: f.id,
+      name: f.name,
+      green: 0,
+      orange: 0,
+      red: 0,
+      hasEligible: false,
+    }
+  })
+
+  contacts.forEach(c => {
+    const urg = urgencyMap.get(c.id)
+    if (!urg) return
+
+    if (urg.status === 'green') urgencyCounts.green++
+    else if (urg.status === 'orange') urgencyCounts.orange++
+    else if (urg.status === 'red') urgencyCounts.red++
+    else if (urg.status === 'attempted') urgencyCounts.attempted++
+    else if (urg.status === 'unassigned') urgencyCounts.unassigned++
+
+    if (c.assignedToId && freelancerUrgencyMap[c.assignedToId]) {
+      const fEntry = freelancerUrgencyMap[c.assignedToId]
+      if (urg.status === 'green') {
+        fEntry.green++
+        fEntry.hasEligible = true
+      } else if (urg.status === 'orange') {
+        fEntry.orange++
+        fEntry.hasEligible = true
+      } else if (urg.status === 'red') {
+        fEntry.red++
+        fEntry.hasEligible = true
+      } else if (urg.status === 'attempted') {
+        fEntry.hasEligible = true
+      }
+    }
+  })
+
+  const urgencyByFreelancer = Object.values(freelancerUrgencyMap)
+    .filter(f => f.hasEligible)
+    .map(({ freelancerId, name, green, orange, red }) => ({
+      freelancerId,
+      name,
+      green,
+      orange,
+      red,
+    }))
+
+  const urgency = {
+    counts: urgencyCounts,
+    byFreelancer: urgencyByFreelancer,
+  }
+
   return NextResponse.json({
     kpis: {
       totalProspects,
@@ -333,5 +396,6 @@ export async function GET(req: NextRequest) {
     followupPipeline,
     dataQuality,
     salesFunnel,
+    urgency,
   })
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
+import { getContactsUrgency, computeUrgencySummary } from '@/lib/urgency'
 
 export async function GET() {
   const { error, session } = await requireAuth('FREELANCER')
@@ -44,5 +45,29 @@ export async function GET() {
     prisma.notification.count({ where: { userId: agentId, isRead: false } }),
   ])
 
-  return NextResponse.json({ todaysCalls, queue, followUps, unreadCount })
+  const urgencyMap = await getContactsUrgency(queue)
+  const queueWithUrgency = queue.map(c => ({
+    ...c,
+    urgency: urgencyMap.get(c.id) || {
+      status: 'unassigned',
+      assignedAt: null,
+      hoursElapsed: null,
+      firstAttemptAt: null,
+    },
+  }))
+
+  const urgencySummary = computeUrgencySummary(queueWithUrgency.map(c => c.urgency))
+
+  return NextResponse.json({
+    todaysCalls,
+    queue: queueWithUrgency,
+    followUps,
+    unreadCount,
+    urgencySummary: {
+      green: urgencySummary.green,
+      orange: urgencySummary.orange,
+      red: urgencySummary.red,
+      attempted: urgencySummary.attempted,
+    },
+  })
 }

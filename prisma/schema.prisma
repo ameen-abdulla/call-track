@@ -115,6 +115,8 @@ model AssignmentHistory {
   fromUser  User?   @relation("AssignmentFrom", fields: [fromUserId], references: [id])
   toUser    User?   @relation("AssignmentTo", fields: [toUserId], references: [id])
   changedBy User    @relation("AssignmentBy", fields: [changedById], references: [id])
+
+  @@index([contactId, createdAt])
 }
 
 model CallAttempt {
