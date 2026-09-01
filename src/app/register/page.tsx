@@ -119,7 +119,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block font-semibold text-[var(--text-secondary)] mb-1">Password * (min 8)</label>
+              <label className="block font-semibold text-[var(--text-secondary)] mb-1">Password *</label>
               <input
                 type="password"
                 required
@@ -129,6 +129,9 @@ export default function RegisterPage() {
                 className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)] focus:outline-none"
                 placeholder="••••••••"
               />
+              <p className="mt-1 text-[10px] text-[var(--text-muted)] leading-relaxed">
+                Min 8 characters · one uppercase · one number · one special character (e.g. !@#\$)
+              </p>
             </div>
 
             <div>

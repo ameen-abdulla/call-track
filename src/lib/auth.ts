@@ -2,8 +2,13 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
+import { rateLimit, resetLimit } from '@/lib/rate-limit'
+import { normalizeEmail } from '@/lib/password-policy'
 
 const FIVE_MINUTES = 5 * 60 * 1000
+// 5 failed attempts per IP per 15 minutes before lockout
+const LOGIN_LIMIT = 5
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -13,17 +18,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        ipKey: { label: '', type: 'text' }, // forwarded by middleware for rate-limit key
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        })
+        const email = normalizeEmail(credentials.email as string)
+        // Rate-limit by email (prevents targeted brute-force even across IPs)
+        const emailKey = `email:${email}`
+        const rl = rateLimit('login', emailKey, LOGIN_LIMIT, LOGIN_WINDOW_MS)
+        if (!rl.allowed) {
+          const mins = Math.ceil(rl.retryAfterMs / 60000)
+          throw new Error(`too_many_attempts:${mins}`)
+        }
+
+        const user = await prisma.user.findUnique({ where: { email } })
         if (!user) return null
 
         const valid = await bcrypt.compare(credentials.password as string, user.passwordHash)
         if (!valid) return null
+
+        // Successful login — clear the rate-limit bucket
+        resetLimit('login', emailKey)
 
         // Block non-approved freelancers with specific error codes
         if (user.role === 'FREELANCER') {

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
 import { UserRole } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { validatePassword, sanitizeText, normalizeEmail } from '@/lib/password-policy'
 
 export async function GET(req: NextRequest) {
   const { error } = await requireAuth('admin')
@@ -39,9 +40,26 @@ export async function POST(req: NextRequest) {
   const { error } = await requireAuth('admin')
   if (error) return error
 
-  const { name, email, phone, password, role } = await req.json()
+  const body = await req.json()
+  const name = sanitizeText(body.name ?? '')
+  const email = normalizeEmail(body.email ?? '')
+  const phone = body.phone ? sanitizeText(body.phone) : null
+  const password: string = body.password ?? ''
+  const role: string = body.role ?? ''
+
   if (!name || !email || !password || !role) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  // Password strength policy
+  const pwCheck = validatePassword(password)
+  if (!pwCheck.valid) {
+    return NextResponse.json({ error: pwCheck.errors[0] }, { status: 400 })
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) {
+    return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
   }
 
   const roleUpper = role.toUpperCase() === 'ADMIN' ? UserRole.ADMIN : UserRole.FREELANCER
@@ -50,7 +68,7 @@ export async function POST(req: NextRequest) {
     data: {
       name,
       email,
-      phone: phone || null,
+      phone,
       passwordHash,
       role: roleUpper,
       freelancerStatus: roleUpper === UserRole.FREELANCER ? 'APPROVED' : null,

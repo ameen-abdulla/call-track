@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-utils'
 import bcrypt from 'bcryptjs'
+import { validatePassword, sanitizeText, normalizeEmail } from '@/lib/password-policy'
 
 export async function GET() {
   const { error } = await requireAuth('ADMIN')
@@ -31,10 +32,21 @@ export async function POST(req: NextRequest) {
   const { error, session } = await requireAuth('ADMIN')
   if (error) return error
 
-  const { name, email, phone, password, applicationNote } = await req.json()
+  const body = await req.json()
+  const name = sanitizeText(body.name ?? '')
+  const email = normalizeEmail(body.email ?? '')
+  const phone = body.phone ? sanitizeText(body.phone) : null
+  const password: string = body.password ?? ''
+  const applicationNote = body.applicationNote ? sanitizeText(body.applicationNote) : null
 
   if (!name || !email || !password) {
     return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 })
+  }
+
+  // Password strength policy
+  const pwCheck = validatePassword(password)
+  if (!pwCheck.valid) {
+    return NextResponse.json({ error: pwCheck.errors[0] }, { status: 400 })
   }
 
   const existing = await prisma.user.findUnique({ where: { email } })
@@ -47,7 +59,7 @@ export async function POST(req: NextRequest) {
     data: {
       name,
       email,
-      phone: phone || null,
+      phone,
       passwordHash,
       role: 'FREELANCER',
       freelancerStatus: 'APPROVED',

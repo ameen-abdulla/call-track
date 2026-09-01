@@ -15,6 +15,15 @@ const errorMessages: Record<string, string> = {
   CredentialsSignin: 'Invalid email or password.',
 }
 
+function resolveError(code: string): string {
+  // Handle dynamic too_many_attempts:N code
+  if (code.startsWith('too_many_attempts')) {
+    const mins = code.split(':')[1] ?? '15'
+    return `Too many login attempts. Please wait ${mins} minute(s) and try again.`
+  }
+  return errorMessages[code] || 'An error occurred during sign in.'
+}
+
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -26,7 +35,7 @@ function LoginForm() {
   useEffect(() => {
     const urlError = searchParams.get('error')
     if (urlError) {
-      setError(errorMessages[urlError] || 'An error occurred during sign in.')
+      setError(resolveError(urlError))
     }
   }, [searchParams])
 
@@ -44,7 +53,7 @@ function LoginForm() {
     setLoading(false)
 
     if (result?.error) {
-      setError(errorMessages[result.error] || errorMessages.CredentialsSignin)
+      setError(resolveError(result.error))
       return
     }
 
