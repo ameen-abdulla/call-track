@@ -1,41 +1,59 @@
 # Call Track — Marketing Call & Feedback App
 
-A mobile-first web app for tracking marketing calls, logging outcomes, and managing follow-ups.
+> **Version: Patch 1.1**  
+> A high-performance, mobile-first web app for marketing call teams, outbound outreach, SLA tracking, and lead conversion management.
 
-## Quick Start
+---
+
+## 🚀 What's New in Patch 1.1
+
+- **Contact Urgency Meter & SLA Tracking**:
+  - Real-time SLA tracking categorized into **Fresh (<24h)**, **Pending (24–72h)**, **Critical (>72h)**, and **Attempted** outreach.
+  - Freelancers can toggle **"Urgent First"** / **"Priority Sort"** to tackle overdue leads before SLA breaches.
+  - Admin analytics include interactive drill-down urgency panels with caller breakdown.
+- **Admin Call Outcomes Report**:
+  - Dedicated call report tab in Analytics with filtering by date range and Freelancer/caller.
+  - Detailed logs of all calls with connected status, outcome badges, feedback notes, and timestamps.
+- **Freelancer Activity Log (4th Tab)**:
+  - New tab on the Freelancer dashboard enabling callers to review their complete call history.
+  - In-place **Edit** capability to correct outcomes, update response notes, adjust interest levels, or reschedule follow-up activities.
+- **Add Admin UI**:
+  - Direct UI modal in the Admin portal to create additional Admin accounts seamlessly.
+- **Security, Rate Limiting & Input Sanitization**:
+  - In-memory sliding window rate limiting on authentication and registration endpoints to protect against brute-force attacks.
+  - Strict password validation policy: minimum 8 characters, at least 1 uppercase letter, 1 number, 1 special character (`!@#$%&`), and common password blocklist.
+  - Input sanitization stripping harmful control characters and normalizing emails.
+- **Dynamic Seed Passwords**:
+  - Cryptographically secure, randomly generated seed passwords generated during `npm run db:seed`.
+  - Seed credentials are automatically saved to `SEED_CREDENTIALS.txt` (never hardcoded defaults).
+
+---
+
+## ⚡ Quick Start
 
 ### Prerequisites
-- Node.js 20+
-- npm
+- **Node.js 20+**
+- **npm** (or Docker Desktop for containerized deployment)
 
-### Setup
+### Local Setup
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Set up environment
+# 2. Set up environment
 cp .env.example .env
-# Edit .env if needed (defaults work out of the box)
+# Edit .env if needed (default SQLite works out of the box)
 
-# Set up database and seed
+# 3. Initialize database & seed initial data
 npm run db:push
 npm run db:seed
 
-# Start development server
+# 4. Start development server
 npm run dev
 ```
 
-Open https://calltrack.flexibook.ai
-
-### Default Login Credentials
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@calltrack.local | admin123 |
-| Secretary | secretary@calltrack.local | secretary123 |
-
-> ⚠️ Change these passwords before going live!
+The application will be accessible at: `http://localhost:3000` (or `https://calltrack.flexibook.ai` if configured with Cloudflare Tunnel).
 
 ### Production Build
 
@@ -44,32 +62,55 @@ npm run build
 npm run start
 ```
 
-## Installation (Docker Desktop)
+---
 
-This is the recommended way to run Call Track — no developer tools needed after setup.
+## 🔐 Initial Login & Seed Credentials
 
-### Step 1 — Install Docker Desktop (one time)
-Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop), install, and open it. Wait for the whale icon to appear in your taskbar.
+During `npm run db:seed`, secure passwords are dynamically generated and saved to **`SEED_CREDENTIALS.txt`** in the project root:
 
-### Step 2 — Run Setup (one time)
+```
+============================================
+ GENERATED SEED CREDENTIALS (save these!)
+ Admin:      admin@calltrack.local       →  <Generated_Password>
+ Freelancer: freelancer@calltrack.local  →  <Generated_Password>
+============================================
+```
+
+> ⚠️ **Important**: Open `SEED_CREDENTIALS.txt` to retrieve your initial admin and freelancer credentials. Ensure passwords are changed or managed safely before production use.
+
+### Password Requirements
+When registering or creating new accounts (Admins or Freelancers), passwords must meet the following policy:
+- Minimum **8 characters**
+- At least **one uppercase letter** (A–Z)
+- At least **one number** (0–9)
+- At least **one special character** (`! @ # $ % &` etc.)
+- Must not match common weak passwords
+
+---
+
+## 🐳 Installation via Docker Desktop (Recommended for Production)
+
+Run Call Track seamlessly on Windows or macOS with persistent storage:
+
+### Step 1 — Install Docker Desktop (One-time)
+Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop), install, and ensure Docker engine is running.
+
+### Step 2 — Run Setup (One-time)
 Right-click **`setup.ps1`** → **Run with PowerShell**.
 
-This creates two desktop shortcuts:
-- **Start Call Track** — launches the app and opens your browser
-- **Stop Call Track** — shuts it down
+This script builds the container and creates two desktop shortcuts:
+- **Start Call Track** — launches the container and opens `http://localhost:3000`
+- **Stop Call Track** — safely shuts down the container
 
-> First launch takes 3–5 minutes to build. Every launch after that takes ~10 seconds.
+### Data Persistence
+All database records (contacts, call logs, activities, users) are stored in a dedicated Docker volume (`call-track-data`). Data persists across restarts, updates, and rebuilds.
 
-### Default Credentials
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@calltrack.local | admin123 |
-| Secretary | secretary@calltrack.local | secretary123 |
+---
 
-> Change these after first login.
+## 🌐 Cloudflare Tunnel Setup
 
-### Data
-All your contacts, calls, and notes are stored in a Docker volume. They persist between restarts and are not affected by updates.
-
-## Cloudflare Tunnel Setup
-See Section 8 of the project spec for detailed Cloudflare Named Tunnel setup instructions to expose the app securely to your team.
+To securely expose Call Track to your remote team with SSL encryption and zero port forwarding:
+1. Install `cloudflared` on the host machine.
+2. Authenticate and create a named tunnel pointing to `http://localhost:3000`.
+3. Configure your custom hostname (e.g. `calltrack.flexibook.ai`).
+4. Run tunnel as a background service.
