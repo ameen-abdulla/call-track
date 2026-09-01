@@ -13,7 +13,7 @@ export async function GET() {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const [todaysCalls, queue, followUps, unreadCount] = await Promise.all([
+  const [todaysCalls, queue, followUps, unreadCount, interactions, calls] = await Promise.all([
     // Activities due today
     prisma.activity.findMany({
       where: {
@@ -43,7 +43,112 @@ export async function GET() {
       orderBy: { dueDate: 'asc' },
     }),
     prisma.notification.count({ where: { userId: agentId, isRead: false } }),
+    // Last 50 interactions
+    prisma.interaction.findMany({
+      where: { freelancerId: agentId },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            company: true,
+          },
+        },
+      },
+      orderBy: { occurredAt: 'desc' },
+      take: 50,
+    }),
+    // Last 50 calls (for fallback / compatibility)
+    prisma.call.findMany({
+      where: { agentId },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            company: true,
+          },
+        },
+        activities: {
+          select: { dueDate: true },
+          take: 1,
+        },
+      },
+      orderBy: { callTime: 'desc' },
+      take: 50,
+    }),
   ])
+
+  // Combine interactions and calls into a unified activityLog
+  type ActivityLogItem = {
+    id: string
+    calledAt: string
+    outcome: string
+    notes: string | null
+    scheduledAt: string | null
+    contact: {
+      id: string
+      name: string
+      phone: string
+      company: string | null
+    }
+    type?: string
+    connected?: boolean | null
+    response?: string | null
+    interestArea?: string | null
+    nextActivityRequired?: boolean
+    nextActivity?: string | null
+    source: 'interaction' | 'call'
+  }
+
+  const seenTimestamps = new Set<string>()
+  const combinedLog: ActivityLogItem[] = []
+
+  for (const item of interactions) {
+    const key = `${item.contactId}-${Math.floor(new Date(item.occurredAt).getTime() / 60000)}`
+    seenTimestamps.add(key)
+    combinedLog.push({
+      id: item.id,
+      calledAt: item.occurredAt.toISOString(),
+      outcome: item.response || (item.connected === true ? 'answered' : item.connected === false ? 'no_answer' : item.type),
+      notes: item.notes,
+      scheduledAt: item.nextActivityDate ? item.nextActivityDate.toISOString() : null,
+      contact: item.contact,
+      type: item.type,
+      connected: item.connected,
+      response: item.response,
+      interestArea: item.interestArea,
+      nextActivityRequired: item.nextActivityRequired,
+      nextActivity: item.nextActivity,
+      source: 'interaction',
+    })
+  }
+
+  for (const c of calls) {
+    const key = `${c.contactId}-${Math.floor(new Date(c.callTime || c.createdAt).getTime() / 60000)}`
+    if (!seenTimestamps.has(key)) {
+      combinedLog.push({
+        id: c.id,
+        calledAt: (c.callTime || c.createdAt).toISOString(),
+        outcome: c.responseLookup || c.outcome,
+        notes: c.feedbackNotes,
+        scheduledAt: c.activities?.[0]?.dueDate ? c.activities[0].dueDate.toISOString() : null,
+        contact: c.contact,
+        type: 'CALL',
+        connected: c.outcome !== 'no_answer' && c.outcome !== 'busy',
+        response: c.responseLookup,
+        interestArea: null,
+        nextActivityRequired: Boolean(c.activities?.[0]),
+        nextActivity: null,
+        source: 'call',
+      })
+    }
+  }
+
+  combinedLog.sort((a, b) => new Date(b.calledAt).getTime() - new Date(a.calledAt).getTime())
+  const activityLog = combinedLog.slice(0, 50)
 
   const urgencyMap = await getContactsUrgency(queue)
   const queueWithUrgency = queue.map(c => ({
@@ -62,6 +167,7 @@ export async function GET() {
     todaysCalls,
     queue: queueWithUrgency,
     followUps,
+    activityLog,
     unreadCount,
     urgencySummary: {
       green: urgencySummary.green,

@@ -26,6 +26,7 @@ import { DataQualityPanel } from '@/components/analytics/data-quality-panel'
 import { SalesFunnelChart } from '@/components/analytics/sales-funnel-chart'
 import { UrgencyBadge } from '@/components/urgency-badge'
 import { UrgencyPanel } from '@/components/analytics/urgency-panel'
+import { CallOutcomesTable } from '@/components/analytics/call-outcomes-table'
 import { ContactUrgency } from '@/lib/urgency'
 
 interface Tag {
@@ -81,7 +82,7 @@ export default function AdminDashboard() {
   
   // Navigation State
   const [mainView, setMainView] = useState<'analytics' | 'contacts' | 'overdue' | 'freelancers'>('analytics')
-  const [analyticsSubTab, setAnalyticsSubTab] = useState<'overview' | 'team' | 'pipeline'>('overview')
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<'overview' | 'team' | 'pipeline' | 'outcomes'>('overview')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Analytics Filters
@@ -107,6 +108,7 @@ export default function AdminDashboard() {
   // Modals
   const [showAddContact, setShowAddContact] = useState(false)
   const [showAddFreelancer, setShowAddFreelancer] = useState(false)
+  const [showAddAdmin, setShowAddAdmin] = useState(false)
   const [showAssign, setShowAssign] = useState<Contact | null>(null)
   const [showContactDetail, setShowContactDetail] = useState<Contact | null>(null)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
@@ -131,6 +133,12 @@ export default function AdminDashboard() {
   const [creatingFreelancer, setCreatingFreelancer] = useState(false)
   const [createFreelancerError, setCreateFreelancerError] = useState('')
 
+  // Add Admin Form
+  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '' })
+  const [creatingAdmin, setCreatingAdmin] = useState(false)
+  const [createAdminError, setCreateAdminError] = useState('')
+  const [adminSuccessMessage, setAdminSuccessMessage] = useState('')
+
   // Assign Form
   const [assignAgentId, setAssignAgentId] = useState('')
   const [assignTopic, setAssignTopic] = useState('')
@@ -146,7 +154,7 @@ export default function AdminDashboard() {
         setMainView(saved as typeof mainView)
       }
       const savedSub = localStorage.getItem('calltrack_admin_subtab')
-      if (savedSub && ['overview', 'team', 'pipeline'].includes(savedSub)) {
+      if (savedSub && ['overview', 'team', 'pipeline', 'outcomes'].includes(savedSub)) {
         setAnalyticsSubTab(savedSub as typeof analyticsSubTab)
       }
     } catch {}
@@ -348,6 +356,38 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleCreateAdmin(e: React.FormEvent) {
+    e.preventDefault()
+    setCreatingAdmin(true)
+    setCreateAdminError('')
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newAdmin.name,
+          email: newAdmin.email,
+          password: newAdmin.password,
+          role: 'ADMIN',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setCreateAdminError(data.error || 'Failed to create admin user')
+      } else {
+        setShowAddAdmin(false)
+        setNewAdmin({ name: '', email: '', password: '' })
+        setAdminSuccessMessage(`Admin account for "${data.name}" created successfully.`)
+        setTimeout(() => setAdminSuccessMessage(''), 6000)
+        refreshAll()
+      }
+    } catch {
+      setCreateAdminError('Error connecting to server.')
+    } finally {
+      setCreatingAdmin(false)
+    }
+  }
+
   async function handleAssign() {
     if (!showAssign) return
     setAssigning(true)
@@ -402,19 +442,20 @@ export default function AdminDashboard() {
           {/* Nav Items */}
           <nav className="space-y-1">
             {[
-              { key: 'analytics', label: 'Command Center', icon: LayoutDashboard },
-              { key: 'contacts', label: 'Contacts & Leads', icon: Users, badge: contacts.length },
-              { key: 'overdue', label: 'Overdue Follow-ups', icon: AlertCircle, badge: overdueList.length, danger: overdueList.length > 0 },
-              { key: 'freelancers', label: 'Freelancer Roster', icon: Users, badge: pendingFreelancers > 0 ? `${pendingFreelancers} new` : undefined },
+              { key: 'analytics', label: 'Command Center', icon: LayoutDashboard, onClick: () => { handleSetMainView('analytics'); handleSetSubTab('overview') }, active: mainView === 'analytics' && analyticsSubTab !== 'outcomes' },
+              { key: 'contacts', label: 'Contacts & Leads', icon: Users, badge: contacts.length, onClick: () => handleSetMainView('contacts'), active: mainView === 'contacts' },
+              { key: 'outcomes', label: 'Call Outcomes', icon: PhoneCall, onClick: () => { handleSetMainView('analytics'); handleSetSubTab('outcomes') }, active: mainView === 'analytics' && analyticsSubTab === 'outcomes' },
+              { key: 'overdue', label: 'Overdue Follow-ups', icon: AlertCircle, badge: overdueList.length, danger: overdueList.length > 0, onClick: () => handleSetMainView('overdue'), active: mainView === 'overdue' },
+              { key: 'freelancers', label: 'Freelancer Roster', icon: Users, badge: pendingFreelancers > 0 ? `${pendingFreelancers} new` : undefined, onClick: () => handleSetMainView('freelancers'), active: mainView === 'freelancers' },
             ].map(item => {
               const Icon = item.icon
-              const active = mainView === item.key
+              const active = item.active
 
               return (
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => handleSetMainView(item.key as typeof mainView)}
+                  onClick={item.onClick}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[var(--radius-sm)] text-xs font-medium transition-all ${
                     active
                       ? 'bg-[var(--accent-subtle)] text-[var(--accent)] font-semibold shadow-xs'
@@ -529,16 +570,17 @@ export default function AdminDashboard() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-[var(--surface)] border-b border-[var(--border)] p-4 space-y-2 z-30">
           {[
-            { key: 'analytics', label: 'Command Center', icon: LayoutDashboard },
-            { key: 'contacts', label: 'Contacts & Leads', icon: Users, count: contacts.length },
-            { key: 'overdue', label: 'Overdue Follow-ups', icon: AlertCircle, count: overdueList.length },
-            { key: 'freelancers', label: 'Freelancer Roster', icon: Users },
+            { key: 'analytics', label: 'Command Center', icon: LayoutDashboard, onClick: () => { handleSetMainView('analytics'); handleSetSubTab('overview') }, active: mainView === 'analytics' && analyticsSubTab !== 'outcomes' },
+            { key: 'contacts', label: 'Contacts & Leads', icon: Users, count: contacts.length, onClick: () => handleSetMainView('contacts'), active: mainView === 'contacts' },
+            { key: 'outcomes', label: 'Call Outcomes', icon: PhoneCall, onClick: () => { handleSetMainView('analytics'); handleSetSubTab('outcomes') }, active: mainView === 'analytics' && analyticsSubTab === 'outcomes' },
+            { key: 'overdue', label: 'Overdue Follow-ups', icon: AlertCircle, count: overdueList.length, onClick: () => handleSetMainView('overdue'), active: mainView === 'overdue' },
+            { key: 'freelancers', label: 'Freelancer Roster', icon: Users, onClick: () => handleSetMainView('freelancers'), active: mainView === 'freelancers' },
           ].map(item => (
             <button
               key={item.key}
-              onClick={() => { handleSetMainView(item.key as typeof mainView); setMobileMenuOpen(false) }}
+              onClick={() => { item.onClick(); setMobileMenuOpen(false) }}
               className={`w-full flex items-center justify-between p-2.5 rounded-[var(--radius-sm)] text-xs font-medium ${
-                mainView === item.key ? 'bg-[var(--accent-subtle)] text-[var(--accent)] font-bold' : 'text-[var(--text-secondary)]'
+                item.active ? 'bg-[var(--accent-subtle)] text-[var(--accent)] font-bold' : 'text-[var(--text-secondary)]'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -629,17 +671,18 @@ export default function AdminDashboard() {
           {mainView === 'analytics' && (
             <div className="space-y-4">
               {/* Progressive Disclosure Sub-Tabs */}
-              <div className="flex border-b border-[var(--border)] gap-6 text-xs font-semibold">
+              <div className="flex border-b border-[var(--border)] gap-6 text-xs font-semibold overflow-x-auto">
                 {[
                   { key: 'overview', label: '📊 Executive Overview' },
                   { key: 'team', label: '👥 Team & Tag Coverage' },
                   { key: 'pipeline', label: '📈 Conversion Funnel & Outcomes' },
+                  { key: 'outcomes', label: '📞 Call Outcomes' },
                 ].map(st => (
                   <button
                     key={st.key}
                     type="button"
                     onClick={() => handleSetSubTab(st.key as typeof analyticsSubTab)}
-                    className={`pb-2.5 border-b-2 transition-all ${
+                    className={`pb-2.5 border-b-2 transition-all whitespace-nowrap ${
                       analyticsSubTab === st.key
                         ? 'border-[var(--accent)] text-[var(--accent)] font-bold'
                         : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -717,6 +760,13 @@ export default function AdminDashboard() {
                         <InterestAreaChart data={analyticsData.interestAreaBreakdown} />
                         <InteractionsTimeline data={analyticsData.interactionsTimeline} />
                       </div>
+                    </div>
+                  )}
+
+                  {/* Subtab 4: Call Outcomes */}
+                  {analyticsSubTab === 'outcomes' && (
+                    <div className="space-y-4">
+                      <CallOutcomesTable initialFreelancerId={analyticsFreelancer !== 'all' ? analyticsFreelancer : undefined} />
                     </div>
                   )}
                 </>
@@ -994,20 +1044,42 @@ export default function AdminDashboard() {
           {/* ===================== VIEW 4: FREELANCER ROSTER ===================== */}
           {mainView === 'freelancers' && (
             <div className="space-y-4">
+              {adminSuccessMessage && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs px-3.5 py-2.5 rounded-[var(--radius-sm)] flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span>{adminSuccessMessage}</span>
+                  </div>
+                  <button onClick={() => setAdminSuccessMessage('')} className="text-emerald-500 hover:text-emerald-700">✕</button>
+                </div>
+              )}
+
               <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div>
                     <h3 className="font-semibold text-[var(--text-primary)] text-sm">Freelancer Team ({freelancers.length})</h3>
                     <p className="text-[11px] text-[var(--text-secondary)]">Manage caller accounts and lead loads</p>
                   </div>
 
-                  <button
-                    onClick={() => setShowAddFreelancer(true)}
-                    className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] flex items-center gap-1.5 transition-colors shadow-xs"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Add Freelancer</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddAdmin(true); setCreateAdminError('') }}
+                      className="bg-[var(--bg)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-primary)] text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] flex items-center gap-1.5 transition-colors shadow-xs"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <span>Add Admin</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAddFreelancer(true)}
+                      className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] flex items-center gap-1.5 transition-colors shadow-xs"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Add Freelancer</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1364,6 +1436,80 @@ export default function AdminDashboard() {
                   className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] text-white text-xs font-semibold"
                 >
                   {creatingFreelancer ? 'Creating...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Admin Modal */}
+      {showAddAdmin && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] w-full max-w-sm p-5 shadow-[var(--shadow-modal)] space-y-3">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+              <h3 className="font-bold text-sm text-[var(--text-primary)]">Add Admin User</h3>
+              <button onClick={() => { setShowAddAdmin(false); setCreateAdminError('') }} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
+            </div>
+
+            <form onSubmit={handleCreateAdmin} className="space-y-2.5 text-xs">
+              {createAdminError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-600 text-[11px] p-2 rounded-[var(--radius-sm)]">
+                  {createAdminError}
+                </div>
+              )}
+
+              <div>
+                <label className="font-semibold text-[var(--text-secondary)]">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Admin Name"
+                  value={newAdmin.name}
+                  onChange={e => setNewAdmin(p => ({ ...p, name: e.target.value }))}
+                  className="w-full mt-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-[var(--text-secondary)]">Email *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@example.com"
+                  value={newAdmin.email}
+                  onChange={e => setNewAdmin(p => ({ ...p, email: e.target.value }))}
+                  className="w-full mt-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-[var(--text-secondary)]">Password * (min 8)</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="••••••••"
+                  value={newAdmin.password}
+                  onChange={e => setNewAdmin(p => ({ ...p, password: e.target.value }))}
+                  className="w-full mt-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)] focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowAddAdmin(false); setCreateAdminError('') }}
+                  className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border)] text-xs text-[var(--text-secondary)] hover:bg-[var(--bg)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingAdmin}
+                  className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+                >
+                  {creatingAdmin ? 'Creating...' : 'Create Admin'}
                 </button>
               </div>
             </form>
