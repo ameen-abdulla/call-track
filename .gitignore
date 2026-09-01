@@ -48,3 +48,6 @@ backups/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# credentials
+SEED_CREDENTIALS.txt
