@@ -22,9 +22,13 @@ STEP 3 — You are done!
   to set itself up. After that it starts in about 10 seconds.
 
 Your login details:
-  Admin:     admin@calltrack.local     password: admin123
-  Secretary: secretary@calltrack.local  password: secretary123
+  Initial secure passwords are dynamically generated during database setup.
+  Open the "SEED_CREDENTIALS.txt" file in the app directory to view your credentials:
+    - Admin:      admin@calltrack.local       -> (see SEED_CREDENTIALS.txt)
+    - Freelancer: freelancer@calltrack.local  -> (see SEED_CREDENTIALS.txt)
 
-  (Change these after first login)
+  Password Security Policy:
+  When resetting or creating new accounts, passwords must be at least 8 characters
+  long and include at least 1 uppercase letter, 1 digit, and 1 special character.
 
 Need help? Contact your developer.

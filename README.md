@@ -11,18 +11,28 @@
   - Real-time SLA tracking categorized into **Fresh (<24h)**, **Pending (24–72h)**, **Critical (>72h)**, and **Attempted** outreach.
   - Freelancers can toggle **"Urgent First"** / **"Priority Sort"** to tackle overdue leads before SLA breaches.
   - Admin analytics include interactive drill-down urgency panels with caller breakdown.
-- **Admin Call Outcomes Report**:
-  - Dedicated call report tab in Analytics with filtering by date range and Freelancer/caller.
+- **Admin Call Outcomes & Executive Analytics**:
+  - Dedicated call report tab in Analytics with filtering by date range, Freelancer/caller, and Category Tags.
   - Detailed logs of all calls with connected status, outcome badges, feedback notes, and timestamps.
+  - Reachability donut chart, follow-up pipeline visualization, and actionable Data Quality checklist.
 - **Freelancer Activity Log (4th Tab)**:
-  - New tab on the Freelancer dashboard enabling callers to review their complete call history.
+  - New tab on the Freelancer dashboard enabling callers to review their complete call and interaction history.
   - In-place **Edit** capability to correct outcomes, update response notes, adjust interest levels, or reschedule follow-up activities.
+  - Instant **Call Again** action to quickly re-dial contacts.
+- **Category Tags Management (`/admin/tags`)**:
+  - Manage custom lead categorization tags (e.g. Education, Fleet, Construction) with real-time sector coverage charts.
+- **Audit Activity Logs (`/admin/activity-logs`)**:
+  - Comprehensive system-wide chronological audit trail tracking all logged interactions, calls, and activity updates.
+- **Deleted Contacts Pool (`/admin/contacts/deleted`)**:
+  - Soft-delete safety net with one-click restore capabilities.
 - **Add Admin UI**:
   - Direct UI modal in the Admin portal to create additional Admin accounts seamlessly.
 - **Security, Rate Limiting & Input Sanitization**:
   - In-memory sliding window rate limiting on authentication and registration endpoints to protect against brute-force attacks.
   - Strict password validation policy: minimum 8 characters, at least 1 uppercase letter, 1 number, 1 special character (`!@#$%&`), and common password blocklist.
   - Input sanitization stripping harmful control characters and normalizing emails.
+- **Automated WAL-Safe SQLite Backups**:
+  - Zero-corruption point-in-time SQLite backups using background cron execution (`VACUUM INTO`) to the `backups/` directory.
 - **Dynamic Seed Passwords**:
   - Cryptographically secure, randomly generated seed passwords generated during `npm run db:seed`.
   - Seed credentials are automatically saved to `SEED_CREDENTIALS.txt` (never hardcoded defaults).

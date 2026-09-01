@@ -80,9 +80,8 @@ Call Track is optimized for mobile outreach:
 
 ## Logging In
 1. Navigate to the app URL.
-2. Select **Freelancer** on the role switch.
-3. Enter your email and password from `SEED_CREDENTIALS.txt` (or your approved registration account).
-4. Tap **Sign In**.
+2. Enter your email and password from `SEED_CREDENTIALS.txt` (or your approved registration account). The system automatically detects your role upon sign-in.
+3. Tap **Sign In to Command Center**.
 
 ---
 
@@ -109,49 +108,82 @@ Your primary active outreach pipeline.
 
 ### Tab 2: Today's Calls
 Displays scheduled follow-up calls due today.
-- Shows scheduled time and contact details.
-- Tap **Call** to start the call session.
+- Shows scheduled time, activity type (Call, Email, Meeting), and contact details.
+- Tap **Call** to launch the Call & Feedback interface.
+- Tap **Mark Done ✓** to mark the scheduled follow-up complete directly without re-dialing.
 
 ---
 
 ### Tab 3: Follow-ups
 Tracks all upcoming and overdue follow-up commitments.
 - Items tagged with 🔴 **Overdue** are past their scheduled date and require immediate attention.
-- Tap **Call** to reconnect and record next steps.
+- Tap **Call** to launch the Call & Feedback interface to reconnect and record next steps.
+- Tap **Mark Done ✓** to complete and clear resolved follow-up tasks.
 
 ---
 
 ### Tab 4: Activity Log (New in Patch 1.1)
-Review and manage your complete historical call log.
+Review and manage your complete historical call and interaction log.
 
 - **Call History List**: Chronological timeline of all logged calls and interactions.
-- **Outcome Badges**: Visual indicators for Connected, Not Interested, Converted, Callback, etc.
-- **Editing Past Call Records**:
-  1. Locate the call entry in the **Activity Log** tab.
-  2. Tap the **Edit (Pencil)** button on the right side of the card.
-  3. The **Edit Activity Log Modal** opens.
-  4. Update the **Outcome**, **Notes**, **Response**, **Interest Level**, or adjust the **Next Scheduled Follow-up**.
-  5. Tap **Save Changes** to instantly update records and sync with Admin reports.
+- **Outcome Badges**: Visual indicators for Connected/Answered, Not Interested, Converted, Callback, Busy, No Answer, etc.
+- **Actions on History Cards**:
+  - **Call Again**: Tap the green **Call Again** button to instantly re-dial the contact and open a fresh call session.
+  - **View / Edit**: Tap **View / Edit** to open the **Edit Activity Log Modal**. Update the **Standardized Response**, **Interest Area**, **Connected Status**, **Call Notes**, or adjust the **Next Scheduled Follow-up**.
+  - Tap **Save Changes** to instantly update records and sync with Admin reports.
 
 ---
 
 ## Call & Feedback Workflow
 
-1. **Initiate Call**: Tap the green **"Call [phone number]"** button. Your phone dialer opens automatically.
-2. **Select Outcome**:
-   - **Connected**: Spoke with the decision-maker or representative.
-   - **No Answer**: Phone rang with no response.
-   - **Busy**: Line was engaged.
-   - **Wrong Number**: Incorrect or invalid contact info.
-   - **Not Interested**: Prospect declined product/service.
-   - **Callback Requested**: Prospect requested a call at another time.
-3. **Feedback & Interest Level** (if Connected):
-   - Select **Hot 🔥**, **Warm ☀️**, or **Cold 🧊**.
-   - Enter specific notes regarding prospect requirements and objections.
-4. **Schedule Next Action**:
-   - Select next activity type (**Call**, **Email**, **Meeting**).
-   - Set follow-up date and time.
-5. **Save**: Tap **Save Call Record**.
+1. **Dialing & Click-to-Call Verification**:
+   - **Call Primary**: Tap the green **"Call Primary: [phone number]"** button to open your device dialer.
+   - **Call WhatsApp**: If a secondary number is present, tap the purple **"Call WhatsApp: [phone2]"** button.
+   - **Click-to-Call Verification Badge**: Displays an automated verification status:
+     - 🛡️ **Call Verified (Green)**: "Dialer tap recorded" — confirmed dialer launch.
+     - ⚠️ **Unverified Call (Amber)**: "No tap detected" — indicates manual logging without clicking the in-app dialer button.
+
+2. **Interaction Type Switcher**:
+   Select the channel type for the interaction:
+   - 📞 **Call Log**: Direct phone conversation.
+   - ✉️ **Email**: Email outreach or follow-up correspondence.
+   - 👥 **Meeting**: In-person or virtual conference / demonstration.
+
+3. **Call Outcome & Connected Status** (for Call Log):
+   - **Did the prospect answer?**
+     - **Yes — Connected**: Prospect answered the call.
+     - **No Answer / Busy**: Call was not answered or the line was busy.
+
+4. **Standardized Response Outcome** (if Connected or Email/Meeting):
+   Select from the 12 standardized response taxonomy options:
+   - **Positive Outcome**: `Interested – Request Demo`, `Interested – Request Quotation`
+   - **Objection**: `Already Have GPS`, `Happy With Current Provider`, `Too Expensive`
+   - **Follow-Up Required**: `Send Information by Email`, `Need Management Approval`, `Call Back Later`
+   - **Contact Issue**: `Decision Maker Not Available`, `Wrong Contact`
+   - **Negative Outcome**: `No Current Requirement`, `Not Interested`
+   *Selecting an option automatically displays contextual guidance and recommended next steps.*
+
+5. **Interest Area (Optional)**:
+   Select an AutoTrace solution area:
+   - `Fleet Tracking & Telematics`
+   - `School Bus Safety & RFID`
+   - `Fuel Monitoring & Theft Prevention`
+   - `Cold Chain / Temperature Sensors`
+   - `Driver Behavior & Safety Scoring`
+   - `Route Optimization & Dispatch`
+   - `Vehicle Maintenance & Diagnostics`
+   - `General Inquiry / Full Suite`
+
+6. **Call Notes**:
+   Enter specific details regarding fleet size, existing suppliers, objections, or decision-maker requirements.
+
+7. **Follow-up Activity**:
+   - Check **Schedule follow-up** to create an actionable reminder.
+   - Select activity channel: **call**, **email**, or **meeting**.
+   - Pick the target follow-up date and time (defaults to 2 business days out).
+
+8. **Save**:
+   Tap **Save Call Record** / **Save Interaction**. The record is saved and you are routed back to your queue.
 
 ---
 
@@ -180,28 +212,36 @@ Review and manage your complete historical call log.
 
 ## Admin Navigation & Main Views
 
-### 1. Analytics & Reports View
-Select **Analytics** from the top navigation. Explore 4 specialized sub-tabs:
+### 1. Analytics & Reports View (Command Center)
+Select **Command Center / Analytics** from the navigation. Explore 4 specialized sub-tabs:
 
-#### Sub-Tab A: Overview & Urgency Meter
+#### Sub-Tab 1: Executive Overview
+- **Reachability Donut Chart**: Visualizes overall call reachability ratio (**Connected vs Unanswered**).
+- **Follow-up Pipeline Card**: Visual pipeline breakdown for scheduled follow-ups (**Overdue**, **Due Today**, **Next 7 Days**, and **Beyond 7 Days**).
 - **Lead Outreach Urgency Meter**: Real-time SLA tracker for assigned leads awaiting first contact:
   - 🔴 **Critical (>72h)**: Immediate SLA breach risk.
   - 🟡 **Pending (24–72h)**: In danger of exceeding SLA.
   - 🟢 **Fresh (<24h)**: Recently assigned.
   - 🔵 **Attempted**: Outreach initiated.
-- **Drill-Down Filtering**: Click any urgency metric card to automatically filter contacts by that urgency level.
+  - *Click any urgency metric card to automatically filter contacts by that urgency level.*
+- **Data Quality Checklist**: Actionable pipeline health monitor highlighting unassigned leads, missing contact details, stale queues, and unverified call anomalies.
 
-#### Sub-Tab B: Team Performance
-- View **Freelancer Workload Table**: assigned leads, calls logged, connected call rate, and verified call percentages per caller.
+#### Sub-Tab 2: Team & Tag Coverage
+- **Tag Coverage Chart**: Distribution of leads and interactions across business categories and vertical tags.
+- **Freelancer Workload Table**: Real-time breakdown per caller of assigned leads, total calls logged, connected call rate, and verified click-to-call percentage.
 
-#### Sub-Tab C: Sales Pipeline
-- Visual breakdown of the sales funnel, tag coverage, and follow-up pipeline.
+#### Sub-Tab 3: Conversion Funnel & Outcomes
+- **Sales Funnel Chart**: Stage-by-stage progression from Total Leads → Assigned → Contacted → Converted.
+- **Response Analytics Breakdown**: Detailed distribution of prospect responses across Positive, Objection, Follow-up, and Negative categories.
+- **Interest Area Breakdown**: Distribution of prospect interest across the 8 AutoTrace solution areas.
+- **Interactions Timeline**: Activity volume trends over time.
 
-#### Sub-Tab D: Call Outcomes Report (New in Patch 1.1)
+#### Sub-Tab 4: Call Outcomes
 - Comprehensive log of every call attempt across the entire organization.
 - **Filters**:
-  - **Date Range**: Today, Last 7 Days, Last 30 Days, or All Time.
+  - **Date Range**: All Time, Today, 7D, 30D.
   - **Freelancer / Caller**: Filter by specific caller or view All Team members.
+  - **Tags**: Filter by specific business vertical tag.
 - **Data Table**: Shows Date/Time, Prospect Name & Phone, Caller Name, Connected Status, Outcome Badge, and Notes.
 
 ---
@@ -209,10 +249,11 @@ Select **Analytics** from the top navigation. Explore 4 specialized sub-tabs:
 ### 2. Contacts Management View
 Select **Contacts** from navigation.
 
+- **Segmented Pool Switcher**: Quick-toggle between **All Contacts**, **Unassigned Pool**, and **Assigned Leads**.
 - **Search & Filters**: Search by name, phone, company, status, priority (Tier A/B), and tags.
 - **Add Contact**:
   1. Click **Add Contact**.
-  2. Enter Name, Phone, Email, Company, Priority, and optional Discussion Topic.
+  2. Enter Name, Primary Phone, WhatsApp/Phone 2, Email, Company, Source, Priority Tier, and optional Talking Point/Topic.
   3. Save contact.
 - **CSV Bulk Import**:
   1. Ensure your CSV has headers: `name,phone,email,company,source` (plus optional `tag`, `call_priority`).
@@ -249,6 +290,17 @@ Select **Freelancers** from navigation.
 
 ---
 
+### 5. Admin Management Sidebar Links
+
+- 🏷️ **Category Tags (`/admin/tags`)**:
+  Create, edit, and organize lead categories and vertical tags (e.g. Education, Fleet, Construction) to segment prospects and track sector coverage.
+- 📜 **Audit Activity Logs (`/admin/activity-logs`)**:
+  Full chronological audit log of all system interactions, calls, and agent activity updates across the entire team for transparency and compliance.
+- 🗑️ **Deleted Contacts Pool (`/admin/contacts/deleted`)**:
+  Dedicated trash pool for soft-deleted contacts with one-click **Restore** functionality to recover accidentally removed leads.
+
+---
+
 ## 📋 Recommended Admin Daily Workflow
 
 ```text
@@ -260,7 +312,7 @@ Morning:
 
 During the Day:
   5. Monitor Calls Today progress on KPI Strip.
-  6. Review incoming calls via Analytics → Call Outcomes Report.
+  6. Review incoming calls via Command Center / Analytics → Call Outcomes.
 
 End of Day / Week:
   7. Check team conversion rates and caller connected call metrics.
