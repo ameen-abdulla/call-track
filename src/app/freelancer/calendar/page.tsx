@@ -33,15 +33,15 @@ function followUpTypeBadge(type: string | null) {
 }
 
 function toDateStr(d: Date) {
-  return d.toISOString().slice(0, 10)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function parseLocalDate(str: string): Date {
   const [y, m, day] = str.split('-').map(Number)
-  const d = new Date()
-  d.setFullYear(y, m - 1, day)
-  d.setHours(0, 0, 0, 0)
-  return d
+  return new Date(y, m - 1, day, 12, 0, 0)
 }
 
 function CalendarInner() {
