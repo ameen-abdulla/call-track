@@ -129,6 +129,24 @@ All 10 areas of the overhaul were validated. Five (5) hidden edge cases and bug 
 
 ---
 
+## 11. Verification Checklist — Clear Data, Automatic Retry Follow-ups & Calendar
+
+**Verification Date**: September 5, 2026  
+**Suite Result**: **8 / 8 Checks PASSED (100%)**
+
+| # | Verification Requirement | Status | Detailed Verification Result |
+| :---: | :--- | :---: | :--- |
+| **1** | **Consecutive "no answer" calls deduplication**: Logging two consecutive "no answer" calls on the same contact does NOT create two `RETRY_CALL` activities — the due date on the existing one updates instead. | **PASS** | Tested in SQLite WAL with consecutive unanswered calls. 1st call creates `Activity` (`followUpType: 'RETRY_CALL'`, `dueDate = now + 4h`). 2nd call locates existing open retry for the contact, refreshes `dueDate` to `now + 4h` and preserves single activity row. Duplicate rows prevented. |
+| **2** | **Connected "Call Back Later" categorization**: A connected call with response "Call Back Later" creates an Activity with `followUpType = CALLBACK_REQUESTED`, not `RETRY_CALL`. | **PASS** | Tested response categorization in `POST /api/interactions`: `"Call Back Later"` maps to `CALLBACK_REQUESTED`; `"Need Management Approval"` & `"Decision Maker Not Available"` map to `ESCALATION`; other manual scheduling maps to `MANUAL`. |
+| **3** | **Carry follow-ups on contact reassignment**: Reassigning a contact (both single assign and bulk-assign) moves its open (pending/overdue) follow-ups to the new freelancer; completed ones keep the original `agentId`. | **PASS** | Verified in `assign/route.ts` and `bulk-assign/route.ts` within the database transaction. Open activities (`status in ['pending', 'overdue']`) are atomically reassigned to the new caller (`agentId = toUserId`), while historical completed activities (`status: 'completed'`) preserve original `agentId`. |
+| **4** | **Freelancer calendar query isolation**: The freelancer calendar page never returns another freelancer's activities, even if `contactId`/`date` params are manipulated in devtools. | **PASS** | Verified query constraints in `GET /api/activities`. When `session.user.role === 'FREELANCER'`, the query strictly locks `where.agentId = session.user.id`. Any user-provided `agent_id` query parameters are ignored. |
+| **5** | **Clear Data atomicity & retention**: After running Clear Data, User accounts and Tag definitions still exist, a new CSV import + assignment flow works immediately, and exactly one `ActivityLog` row (`DATA_CLEARED`) was written with accurate counts. | **PASS** | Verified `POST /api/admin/clear-data`. Cascading delete wipes `interactions`, `callAttempts`, `activities`, `calls`, `assignmentHistory`, `contacts`, and `notifications` in FK-safe order. Zero users or tags were affected. Audit record `DATA_CLEARED` recorded with accurate record counts. |
+| **6** | **Clear Data confirmation guard**: Clear Data is unreachable without typing the exact confirmation string, both in the UI and if the API is called directly without it. | **PASS** | Tested both API and UI. API rejects payloads with `confirmationText !== 'DELETE ALL DATA'` with HTTP 400 (`"Confirmation text did not match"`). In the admin settings UI, the "Clear All Data" action button remains strictly disabled until `"DELETE ALL DATA"` is typed into the input field. |
+| **7** | **Cron jobs compatibility**: Existing cron jobs (`lib/cron.ts` overdue-check and daily reminder) still run cleanly against Activity rows that now have a `followUpType` — no query in `cron.ts` needs to change, but confirm it doesn't error on the new column. | **PASS** | Verified `prisma.activity.findMany` queries in `lib/cron.ts` against the modified SQLite schema with `followUpType` and indexes `@@index([agentId, dueDate])`, `@@index([dueDate])`, `@@index([status])`. Both hourly and daily cron routines query cleanly without schema errors. |
+| **8** | **Backward compatibility with null `followUpType`**: Old Activity rows created before this change (`followUpType = null`) still render correctly in both dashboards and the new calendar without crashing on a missing type. | **PASS** | Tested rendering with null `followUpType`. `followUpTypeBadge` handles `null`/`undefined` gracefully by returning `null` (omitting badge). Dashboards and calendar cards render cleanly without TypeScript errors or runtime crashes. |
+
+---
+
 ## Not Fixed / Needs a Decision
 
 1. **Call Attempt Cooldown Duration**:
@@ -137,3 +155,4 @@ All 10 areas of the overhaul were validated. Five (5) hidden edge cases and bug 
 2. **Activity Log Retention / Pruning**:
    - *Current Implementation*: Append-only logs are retained indefinitely.
    - *Question for Product*: Should automated pruning (e.g. archiving logs older than 180 days) be added to the daily backup cron in the future?
+

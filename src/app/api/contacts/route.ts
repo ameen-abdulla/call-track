@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get('search')?.trim()
   const tagId = searchParams.get('tagId') || searchParams.get('tag')
   const callPriority = searchParams.get('callPriority') || searchParams.get('priority')
+  const urgency = searchParams.get('urgency')
 
   let baseWhere: Record<string, unknown> = {}
 
@@ -76,7 +77,18 @@ export async function GET(req: NextRequest) {
     },
   }))
 
-  return NextResponse.json(contactsWithUrgency)
+  const result = urgency && urgency !== 'all'
+    ? contactsWithUrgency.filter(c => c.urgency.status === urgency)
+    : contactsWithUrgency
+
+  result.sort((a, b) => {
+    const pA = a.callPriority || 'Z'
+    const pB = b.callPriority || 'Z'
+    if (pA !== pB) return pA.localeCompare(pB)
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  })
+
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest) {

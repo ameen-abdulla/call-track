@@ -161,6 +161,13 @@ export async function GET() {
     },
   }))
 
+  queueWithUrgency.sort((a, b) => {
+    const pA = a.callPriority || 'Z'
+    const pB = b.callPriority || 'Z'
+    if (pA !== pB) return pA.localeCompare(pB)
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  })
+
   const urgencySummary = computeUrgencySummary(queueWithUrgency.map(c => c.urgency))
 
   return NextResponse.json({

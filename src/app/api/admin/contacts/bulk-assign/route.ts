@@ -100,6 +100,12 @@ export async function POST(req: NextRequest) {
         where: { id: contact.id },
         data: { assignedToId: toUserId, status: 'queued' },
       })
+      // Transfer open follow-up activities to the new owner.
+      // Completed activities keep their original agentId for historical accuracy.
+      await tx.activity.updateMany({
+        where: { contactId: contact.id, status: { in: ['pending', 'overdue'] } },
+        data: { agentId: toUserId },
+      })
       await tx.assignmentHistory.create({
         data: {
           contactId: contact.id,

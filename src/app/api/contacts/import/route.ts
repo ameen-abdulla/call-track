@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
         company,
         source,
         topic: topic || null,
+        callPriority: priority || null,
         status,
         createdById: session!.user.id,
       },

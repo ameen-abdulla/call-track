@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
     const limit = isNaN(limitParam) || limitParam < 1 ? 50 : Math.min(limitParam, 200)
     const skip = (page - 1) * limit
 
-    const where: Prisma.CallWhereInput = {}
+    const where: Prisma.CallWhereInput = {
+      contact: { deletedAt: null },
+    }
     if (userId && userId !== 'all') {
       where.agentId = userId
     }

@@ -134,13 +134,56 @@ export async function POST(req: NextRequest) {
         data: { status: updatedStatus },
       })
 
-      // 3. Create schedule follow-up activity if requested
-      if (nextActivityRequired && nextActivityDate) {
+      // 3. Auto retry or manually scheduled follow-up activity
+      const retryDelayHours = parseInt(process.env.RETRY_FOLLOWUP_DELAY_HOURS || '4', 10)
+
+      if (type === 'CALL' && connected === false) {
+        // Not-connected path: server-side auto RETRY_CALL — client's nextActivityRequired is ignored.
+        const existingRetry = await tx.activity.findFirst({
+          where: {
+            contactId,
+            followUpType: 'RETRY_CALL',
+            status: { in: ['pending', 'overdue'] },
+          },
+        })
+
+        if (existingRetry) {
+          // Update the existing retry so we don't accumulate duplicate rows.
+          await tx.activity.update({
+            where: { id: existingRetry.id },
+            data: {
+              dueDate: new Date(Date.now() + retryDelayHours * 3600000),
+              status: 'pending',
+            },
+          })
+        } else {
+          // No open retry exists yet — create one.
+          await tx.activity.create({
+            data: {
+              contactId,
+              agentId: session!.user.id,
+              activityType: 'call',
+              followUpType: 'RETRY_CALL',
+              dueDate: new Date(Date.now() + retryDelayHours * 3600000),
+            },
+          })
+        }
+      } else if (nextActivityRequired && nextActivityDate) {
+        // Connected call / email / meeting path — manually scheduled by freelancer.
+        // Categorize followUpType based on response.
+        let followUpType: 'CALLBACK_REQUESTED' | 'ESCALATION' | 'MANUAL' = 'MANUAL'
+        if (response === 'Call Back Later') {
+          followUpType = 'CALLBACK_REQUESTED'
+        } else if (response === 'Need Management Approval' || response === 'Decision Maker Not Available') {
+          followUpType = 'ESCALATION'
+        }
+
         await tx.activity.create({
           data: {
             contactId,
             agentId: session!.user.id,
             activityType: nextActivity || (type === 'MEETING' ? 'meeting' : type === 'EMAIL' ? 'email' : 'call'),
+            followUpType,
             dueDate: new Date(nextActivityDate),
           },
         })

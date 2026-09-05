@@ -9,10 +9,10 @@ services:
     environment:
       - DATABASE_URL=file:/data/dev.db
       - AUTH_SECRET=your-secret-change-in-production-min-32-chars
-      - AUTH_URL=http://localhost:3000
+      - AUTH_URL=https://calltrack.flexibook.ai
       - AUTH_TRUST_HOST=true
       - NEXTAUTH_SECRET=your-secret-change-in-production-min-32-chars
-      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_URL=https://calltrack.flexibook.ai
     restart: unless-stopped
 
 volumes:

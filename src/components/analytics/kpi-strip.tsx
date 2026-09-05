@@ -19,7 +19,7 @@ export interface KPIsData {
 
 interface KPIStripProps {
   kpis: KPIsData
-  onSelectFilter?: (type: 'unassigned' | 'assigned' | 'converted' | 'all') => void
+  onSelectFilter?: (type: 'unassigned' | 'assigned' | 'converted' | 'all' | 'overdue' | 'calls' | 'demos') => void
 }
 
 export function KPIStrip({ kpis, onSelectFilter }: KPIStripProps) {
@@ -45,7 +45,7 @@ export function KPIStrip({ kpis, onSelectFilter }: KPIStripProps) {
       value: kpis.callsLogged,
       icon: Phone,
       subtext: `${kpis.totalInteractions} total interactions`,
-      action: () => onSelectFilter?.('all'),
+      action: () => onSelectFilter?.('calls'),
       variant: 'default',
     },
     {
@@ -53,7 +53,7 @@ export function KPIStrip({ kpis, onSelectFilter }: KPIStripProps) {
       value: kpis.followUpsDue,
       icon: AlertTriangle,
       subtext: kpis.followUpsDue > 0 ? 'Urgent caller action required' : 'All activities on time',
-      action: () => onSelectFilter?.('all'),
+      action: () => onSelectFilter?.('overdue'),
       variant: kpis.followUpsDue > 0 ? 'danger' : 'success',
     },
     {
@@ -61,7 +61,7 @@ export function KPIStrip({ kpis, onSelectFilter }: KPIStripProps) {
       value: kpis.demosBooked,
       icon: Sparkles,
       subtext: `${kpis.quotationsRequested} quotes requested`,
-      action: () => onSelectFilter?.('all'),
+      action: () => onSelectFilter?.('demos'),
       variant: 'accent',
     },
     {

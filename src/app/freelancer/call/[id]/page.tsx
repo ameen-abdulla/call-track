@@ -363,49 +363,58 @@ export default function FreelancerCallPage({ params }: { params: Promise<{ id: s
           </div>
         )}
 
-        {/* Schedule Follow-up Card */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-xs text-[var(--text-primary)]">Follow-up Activity</span>
-            <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={scheduleNext}
-                onChange={e => setScheduleNext(e.target.checked)}
-                className="rounded-[2px]"
-              />
-              <span>Schedule follow-up</span>
-            </label>
-          </div>
-
-          {scheduleNext && (
-            <div className="space-y-2 pt-1 text-xs">
-              <div className="flex gap-2">
-                {['call', 'email', 'meeting'].map(t => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setActivityType(t)}
-                    className={`flex-1 py-1.5 rounded-[var(--radius-sm)] border capitalize text-xs font-semibold ${
-                      activityType === t
-                        ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-                        : 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              <input
-                type="datetime-local"
-                value={nextDate}
-                onChange={e => setNextDate(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]"
-              />
+        {/* Schedule Follow-up Card — hidden for not-connected calls (handled server-side) */}
+        {(interactionType !== 'CALL' || isConnected) ? (
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-xs text-[var(--text-primary)]">Follow-up Activity</span>
+              <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={scheduleNext}
+                  onChange={e => setScheduleNext(e.target.checked)}
+                  className="rounded-[2px]"
+                />
+                <span>Schedule follow-up</span>
+              </label>
             </div>
-          )}
-        </div>
+
+            {scheduleNext && (
+              <div className="space-y-2 pt-1 text-xs">
+                <div className="flex gap-2">
+                  {['call', 'email', 'meeting'].map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setActivityType(t)}
+                      className={`flex-1 py-1.5 rounded-[var(--radius-sm)] border capitalize text-xs font-semibold ${
+                        activityType === t
+                          ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                          : 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="datetime-local"
+                  value={nextDate}
+                  onChange={e => setNextDate(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-4 shadow-[var(--shadow-card)]">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+              <Info className="w-4 h-4 shrink-0 text-blue-500" />
+              <span>A retry follow-up will be scheduled automatically in {process.env.NEXT_PUBLIC_RETRY_DELAY_HOURS || '4'} hours.</span>
+            </div>
+          </div>
+        )}
 
         {/* Action Button */}
         <button

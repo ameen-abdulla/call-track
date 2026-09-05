@@ -135,16 +135,22 @@ export function CallOutcomesTable({ initialFreelancerId }: { initialFreelancerId
   const [loading, setLoading] = useState<boolean>(true)
   const [refreshKey, setRefreshKey] = useState<number>(0)
 
+  useEffect(() => {
+    if (initialFreelancerId !== undefined) {
+      setSelectedFreelancer(initialFreelancerId || 'all')
+    }
+  }, [initialFreelancerId])
+
   // 1. Fetch freelancers list
   useEffect(() => {
     let ignore = false
     async function loadFreelancers() {
       try {
-        const res = await fetch('/api/users?role=freelancer')
+        const res = await fetch('/api/admin/freelancers')
         if (res.ok && !ignore) {
           const data = await res.json()
           if (Array.isArray(data)) {
-            setFreelancers(data)
+            setFreelancers(data.filter((f: any) => f.freelancerStatus === 'APPROVED'))
           }
         }
       } catch (err) {

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const startOfToday = new Date(now)
     startOfToday.setHours(0, 0, 0, 0)
     const endOfToday = new Date(startOfToday)
-    endOfToday.setDate(endOfToday.getDate() + 1)
+    endOfToday.setHours(23, 59, 59, 999)
     dateFilter = { gte: startOfToday, lte: endOfToday }
   } else if (dateRange === '7d') {
     const d = new Date(now)
@@ -141,7 +141,10 @@ export async function GET(req: NextRequest) {
 
   // --- 2. Coverage by Tag ---
   const tagCoverage = tags.map(t => {
-    const inTag = t.contacts.map(ct => ct.contact)
+    let inTag = t.contacts.map(ct => ct.contact)
+    if (targetFreelancerId) {
+      inTag = inTag.filter(c => c.assignedToId === targetFreelancerId)
+    }
     const totalInTag = inTag.length
     const assignedInTag = inTag.filter(c => c.assignedToId).length
     const unassignedInTag = inTag.filter(c => !c.assignedToId).length
@@ -277,12 +280,31 @@ export async function GET(req: NextRequest) {
   }
 
   // --- 10. Sales Funnel ---
-  const calledContacts = contacts.filter(c => c.interactions.some(i => i.type === 'CALL')).length
-  const positiveInterestContacts = contacts.filter(c =>
-    c.interactions.some(i => i.response?.includes('Interested') || i.response?.includes('Demo') || i.response?.includes('Quotation'))
-  ).length
-  const demoContacts = contacts.filter(c => c.interactions.some(i => i.response?.includes('Demo') || i.type === 'MEETING')).length
-  const quoteContacts = contacts.filter(c => c.interactions.some(i => i.response?.includes('Quotation'))).length
+  const calledContactIds = new Set(interactions.filter(i => i.type === 'CALL').map(i => i.contactId))
+  const positiveInterestContactIds = new Set(
+    interactions
+      .filter(i => i.response?.includes('Interested') || i.response?.includes('Demo') || i.response?.includes('Quotation'))
+      .map(i => i.contactId)
+  )
+  const demoContactIds = new Set(
+    interactions.filter(i => i.response?.includes('Demo') || i.type === 'MEETING').map(i => i.contactId)
+  )
+  const quoteContactIds = new Set(
+    interactions.filter(i => i.response?.includes('Quotation')).map(i => i.contactId)
+  )
+
+  const calledContacts = dateRange === 'all' 
+    ? contacts.filter(c => c.interactions.some(i => i.type === 'CALL')).length
+    : calledContactIds.size
+  const positiveInterestContacts = dateRange === 'all'
+    ? contacts.filter(c => c.interactions.some(i => i.response?.includes('Interested') || i.response?.includes('Demo') || i.response?.includes('Quotation'))).length
+    : positiveInterestContactIds.size
+  const demoContacts = dateRange === 'all'
+    ? contacts.filter(c => c.interactions.some(i => i.response?.includes('Demo') || i.type === 'MEETING')).length
+    : demoContactIds.size
+  const quoteContacts = dateRange === 'all'
+    ? contacts.filter(c => c.interactions.some(i => i.response?.includes('Quotation'))).length
+    : quoteContactIds.size
   const convertedFunnel = contacts.filter(c => c.status === 'converted').length
 
   const stagesRaw = [

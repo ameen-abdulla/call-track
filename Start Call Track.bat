@@ -62,12 +62,12 @@ echo  Opening browser in 8 seconds...
 echo.
 timeout /t 8 /nobreak >nul
 
-start http://localhost:3000
+start https://calltrack.flexibook.ai
 
 echo.
 echo  ============================
 echo    Call Track is running!
-echo    http://localhost:3000
+echo    https://calltrack.flexibook.ai
 echo  ============================
 echo.
 echo  To stop the app, run "Stop Call Track.bat"

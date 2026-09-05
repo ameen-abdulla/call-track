@@ -14,7 +14,13 @@ export async function GET() {
   const [totalContacts, callsToday, overdueFollowUps, convertedContacts, agents, pendingFreelancers] = await Promise.all([
     prisma.contact.count({ where: { deletedAt: null } }),
     prisma.interaction.count({ where: { occurredAt: { gte: today, lt: tomorrow } } }),
-    prisma.activity.count({ where: { status: 'overdue', contact: { deletedAt: null } } }),
+    prisma.activity.count({
+      where: {
+        status: { in: ['pending', 'overdue'] },
+        dueDate: { lt: new Date() },
+        contact: { deletedAt: null },
+      },
+    }),
     prisma.contact.count({ where: { status: 'converted', deletedAt: null } }),
     prisma.user.findMany({
       where: { role: 'FREELANCER', freelancerStatus: 'APPROVED' },
@@ -28,7 +34,11 @@ export async function GET() {
   const conversionRate = totalContacts > 0 ? Math.round((convertedContacts / totalContacts) * 100) : 0
 
   const overdueList = await prisma.activity.findMany({
-    where: { status: 'overdue', contact: { deletedAt: null } },
+    where: {
+      status: { in: ['pending', 'overdue'] },
+      dueDate: { lt: new Date() },
+      contact: { deletedAt: null },
+    },
     include: {
       contact: { select: { name: true, phone: true } },
       agent: { select: { name: true } },

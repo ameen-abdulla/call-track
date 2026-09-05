@@ -556,6 +556,15 @@ export default function FreelancerDashboard() {
             {/* 2. Today's Calls Tab */}
             {activeTab === 'schedule' && (
               <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Today's Schedule</span>
+                  <a
+                    href={`/freelancer/calendar?date=${new Date().toISOString().slice(0, 10)}`}
+                    className="text-[11px] text-[var(--accent)] hover:underline font-semibold"
+                  >
+                    View in Calendar →
+                  </a>
+                </div>
                 {data?.todaysCalls?.length === 0 ? (
                   <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-8 text-center text-xs text-[var(--text-muted)]">
                     No calls scheduled for today
@@ -598,6 +607,15 @@ export default function FreelancerDashboard() {
             {/* 3. Follow-ups Tab */}
             {activeTab === 'followups' && (
               <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Overdue Follow-ups</span>
+                  <a
+                    href={`/freelancer/calendar?date=${new Date().toISOString().slice(0, 10)}`}
+                    className="text-[11px] text-[var(--accent)] hover:underline font-semibold"
+                  >
+                    View in Calendar →
+                  </a>
+                </div>
                 {data?.followUps?.length === 0 ? (
                   <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-8 text-center text-xs text-[var(--text-muted)]">
                     No overdue follow-ups
@@ -858,48 +876,57 @@ export default function FreelancerDashboard() {
                 />
               </div>
 
-              {/* Follow-up Activity */}
-              <div className="space-y-2 pt-1 border-t border-[var(--border)]">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[var(--text-primary)]">Follow-up Activity</span>
-                  <label className="flex items-center gap-1.5 text-[var(--text-secondary)] cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editScheduleNext}
-                      onChange={e => setEditScheduleNext(e.target.checked)}
-                      className="rounded-[2px]"
-                    />
-                    <span>Schedule follow-up</span>
-                  </label>
-                </div>
-
-                {editScheduleNext && (
-                  <div className="space-y-2 pt-1">
-                    <div className="flex gap-2">
-                      {['call', 'email', 'meeting'].map(t => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setEditActivityType(t)}
-                          className={`flex-1 py-1.5 rounded-[var(--radius-sm)] border capitalize text-xs font-semibold ${
-                            editActivityType === t
-                              ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-                              : 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]'
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                      type="datetime-local"
-                      value={editNextDate}
-                      onChange={e => setEditNextDate(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]"
-                    />
+              {/* Follow-up Activity — hidden for not-connected calls (auto-managed server-side) */}
+              {editConnected ? (
+                <div className="space-y-2 pt-1 border-t border-[var(--border)]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[var(--text-primary)]">Follow-up Activity</span>
+                    <label className="flex items-center gap-1.5 text-[var(--text-secondary)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editScheduleNext}
+                        onChange={e => setEditScheduleNext(e.target.checked)}
+                        className="rounded-[2px]"
+                      />
+                      <span>Schedule follow-up</span>
+                    </label>
                   </div>
-                )}
-              </div>
+
+                  {editScheduleNext && (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex gap-2">
+                        {['call', 'email', 'meeting'].map(t => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setEditActivityType(t)}
+                            className={`flex-1 py-1.5 rounded-[var(--radius-sm)] border capitalize text-xs font-semibold ${
+                              editActivityType === t
+                                ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                                : 'bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="datetime-local"
+                        value={editNextDate}
+                        onChange={e => setEditNextDate(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="pt-1 border-t border-[var(--border)]">
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] py-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-blue-500" />
+                    <span>Retry follow-up is automatically managed for unanswered calls.</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Modal Footer */}

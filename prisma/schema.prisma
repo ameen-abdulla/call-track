@@ -25,6 +25,13 @@ enum InteractionType {
   MEETING
 }
 
+enum FollowUpType {
+  RETRY_CALL
+  CALLBACK_REQUESTED
+  ESCALATION
+  MANUAL
+}
+
 model User {
   id               String            @id @default(cuid())
   name             String
@@ -195,19 +202,24 @@ model Call {
 }
 
 model Activity {
-  id           String    @id @default(cuid())
+  id           String        @id @default(cuid())
   contactId    String
   agentId      String
   callId       String?
   activityType String
+  followUpType FollowUpType? // null = legacy/manual rows created before this change
   dueDate      DateTime
-  status       String    @default("pending")
-  createdAt    DateTime  @default(now())
+  status       String        @default("pending")
+  createdAt    DateTime      @default(now())
   completedAt  DateTime?
 
   contact Contact  @relation(fields: [contactId], references: [id])
   agent   User     @relation(fields: [agentId], references: [id])
   call    Call?    @relation(fields: [callId], references: [id])
+
+  @@index([agentId, dueDate])
+  @@index([dueDate])
+  @@index([status])
 }
 
 model Notification {

@@ -81,7 +81,7 @@ export default function AdminDashboard() {
   const { data: session } = useSession()
   
   // Navigation State
-  const [mainView, setMainView] = useState<'analytics' | 'contacts' | 'overdue' | 'freelancers'>('analytics')
+  const [mainView, setMainView] = useState<'analytics' | 'contacts' | 'overdue' | 'freelancers' | 'settings'>('analytics')
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'overview' | 'team' | 'pipeline' | 'outcomes'>('overview')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -95,6 +95,8 @@ export default function AdminDashboard() {
   // Contacts State
   const [contacts, setContacts] = useState<Contact[]>([])
   const [overdueList, setOverdueList] = useState<OverdueActivity[]>([])
+  const [selectedFollowupBucket, setSelectedFollowupBucket] = useState('overdue')
+  const [followupsLoading, setFollowupsLoading] = useState(false)
   const [freelancers, setFreelancers] = useState<Freelancer[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [pendingFreelancers, setPendingFreelancers] = useState<number>(0)
@@ -102,6 +104,7 @@ export default function AdminDashboard() {
   const [filterAssignment, setFilterAssignment] = useState('all')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterPriority, setFilterPriority] = useState('')
+  const [filterUrgency, setFilterUrgency] = useState('')
   const [filterTag, setFilterTag] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -146,11 +149,16 @@ export default function AdminDashboard() {
 
   const [refreshKey, setRefreshKey] = useState(0)
 
+  // Clear Data (Danger Zone) state
+  const [clearDataText, setClearDataText] = useState('')
+  const [clearDataLoading, setClearDataLoading] = useState(false)
+  const [clearDataResult, setClearDataResult] = useState<{ success: boolean; contacts: number; calls: number; interactions: number; activities: number } | null>(null)
+
   // Persist last opened view in localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem('calltrack_admin_view')
-      if (saved && ['analytics', 'contacts', 'overdue', 'freelancers'].includes(saved)) {
+      if (saved && ['analytics', 'contacts', 'overdue', 'freelancers', 'settings'].includes(saved)) {
         setMainView(saved as typeof mainView)
       }
       const savedSub = localStorage.getItem('calltrack_admin_subtab')
@@ -208,6 +216,7 @@ export default function AdminDashboard() {
         if (filterStatus) queryParams.set('status', filterStatus)
         if (filterPriority) queryParams.set('callPriority', filterPriority)
         if (filterTag) queryParams.set('tagId', filterTag)
+        if (filterUrgency) queryParams.set('urgency', filterUrgency)
 
         const [contactsRes, freelancersRes, tagsRes, dashRes] = await Promise.all([
           fetch(`/api/contacts?${queryParams.toString()}`),
@@ -227,7 +236,6 @@ export default function AdminDashboard() {
           if (Array.isArray(contactsData)) setContacts(contactsData)
           if (Array.isArray(freelancersData)) setFreelancers(freelancersData)
           if (Array.isArray(tagsData)) setTags(tagsData)
-          if (dashData?.overdueList) setOverdueList(dashData.overdueList)
           if (dashData?.pendingFreelancers !== undefined) setPendingFreelancers(dashData.pendingFreelancers)
         }
       } catch (e) {
@@ -239,7 +247,31 @@ export default function AdminDashboard() {
 
     loadCoreData()
     return () => { ignore = true }
-  }, [search, filterAssignment, filterStatus, filterPriority, filterTag, refreshKey])
+  }, [search, filterAssignment, filterStatus, filterPriority, filterTag, filterUrgency, refreshKey])
+
+  // Fetch Activities for Overdue / Follow-ups View based on selected bucket
+  useEffect(() => {
+    let ignore = false
+    async function loadActivities() {
+      setFollowupsLoading(true)
+      try {
+        const res = await fetch(`/api/activities?bucket=${selectedFollowupBucket}`)
+        if (res.ok && !ignore) {
+          const data = await res.json()
+          if (Array.isArray(data)) {
+            setOverdueList(data)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching activities:', err)
+      } finally {
+        if (!ignore) setFollowupsLoading(false)
+      }
+    }
+
+    loadActivities()
+    return () => { ignore = true }
+  }, [selectedFollowupBucket, refreshKey])
 
   const refreshAll = () => setRefreshKey(k => k + 1)
 
@@ -419,6 +451,30 @@ export default function AdminDashboard() {
     refreshAll()
   }
 
+  async function handleClearData() {
+    if (clearDataText !== 'DELETE ALL DATA') return
+    setClearDataLoading(true)
+    try {
+      const res = await fetch('/api/admin/clear-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmationText: clearDataText }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setClearDataResult(data)
+        setClearDataText('')
+        refreshAll()
+      } else {
+        alert(data.error || 'Failed to clear data')
+      }
+    } catch {
+      alert('Error connecting to server')
+    } finally {
+      setClearDataLoading(false)
+    }
+  }
+
   const approvedFreelancers = freelancers.filter(f => f.freelancerStatus === 'APPROVED' || !f.freelancerStatus)
   const assignedCount = contacts.filter(c => c.assignedTo).length
   const unassignedCount = contacts.filter(c => !c.assignedTo).length
@@ -447,6 +503,7 @@ export default function AdminDashboard() {
               { key: 'outcomes', label: 'Call Outcomes', icon: PhoneCall, onClick: () => { handleSetMainView('analytics'); handleSetSubTab('outcomes') }, active: mainView === 'analytics' && analyticsSubTab === 'outcomes' },
               { key: 'overdue', label: 'Overdue Follow-ups', icon: AlertCircle, badge: overdueList.length, danger: overdueList.length > 0, onClick: () => handleSetMainView('overdue'), active: mainView === 'overdue' },
               { key: 'freelancers', label: 'Freelancer Roster', icon: Users, badge: pendingFreelancers > 0 ? `${pendingFreelancers} new` : undefined, onClick: () => handleSetMainView('freelancers'), active: mainView === 'freelancers' },
+              { key: 'settings', label: 'Settings', icon: Settings, onClick: () => handleSetMainView('settings'), active: mainView === 'settings' },
             ].map(item => {
               const Icon = item.icon
               const active = item.active
@@ -485,6 +542,14 @@ export default function AdminDashboard() {
               <span className="px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] block mb-1">
                 Admin Management
               </span>
+
+              <Link
+                href="/admin/calendar"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-sm)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Team Calendar</span>
+              </Link>
 
               <Link
                 href="/admin/tags"
@@ -575,6 +640,7 @@ export default function AdminDashboard() {
             { key: 'outcomes', label: 'Call Outcomes', icon: PhoneCall, onClick: () => { handleSetMainView('analytics'); handleSetSubTab('outcomes') }, active: mainView === 'analytics' && analyticsSubTab === 'outcomes' },
             { key: 'overdue', label: 'Overdue Follow-ups', icon: AlertCircle, count: overdueList.length, onClick: () => handleSetMainView('overdue'), active: mainView === 'overdue' },
             { key: 'freelancers', label: 'Freelancer Roster', icon: Users, onClick: () => handleSetMainView('freelancers'), active: mainView === 'freelancers' },
+            { key: 'settings', label: 'Settings', icon: Settings, onClick: () => handleSetMainView('settings'), active: mainView === 'settings' },
           ].map(item => (
             <button
               key={item.key}
@@ -592,6 +658,7 @@ export default function AdminDashboard() {
           ))}
 
           <div className="pt-2 border-t border-[var(--border)] flex justify-between gap-2">
+            <Link href="/admin/calendar" className="text-xs text-[var(--text-secondary)] py-1.5">Calendar</Link>
             <Link href="/admin/activity-logs" className="text-xs text-[var(--text-secondary)] py-1.5">Audit Logs</Link>
             <Link href="/admin/contacts/deleted" className="text-xs text-red-600 py-1.5">Deleted Pool</Link>
             <button onClick={() => signOut({ callbackUrl: '/auth/signed-out' })} className="text-xs text-[var(--text-secondary)] py-1.5">Sign Out</button>
@@ -609,6 +676,7 @@ export default function AdminDashboard() {
                 {mainView === 'analytics' ? 'Tele-Calling Command Center' :
                  mainView === 'contacts' ? 'Contact Pipeline & Lead Pool' :
                  mainView === 'overdue' ? 'Overdue Follow-ups & Reminders' :
+                 mainView === 'settings' ? 'Settings & Danger Zone' :
                  'Freelancer Team & Workload'}
               </h1>
               <p className="text-[11px] text-[var(--text-secondary)]">
@@ -703,10 +771,40 @@ export default function AdminDashboard() {
                   <KPIStrip
                     kpis={analyticsData.kpis}
                     onSelectFilter={(type) => {
+                      if (type === 'overdue') {
+                        setSelectedFollowupBucket('overdue')
+                        handleSetMainView('overdue')
+                        return
+                      }
+                      if (type === 'calls') {
+                        handleSetMainView('analytics')
+                        handleSetSubTab('outcomes')
+                        return
+                      }
+                      if (type === 'demos') {
+                        handleSetMainView('analytics')
+                        handleSetSubTab('pipeline')
+                        return
+                      }
                       handleSetMainView('contacts')
-                      if (type === 'unassigned') setFilterAssignment('unassigned')
-                      else if (type === 'assigned') setFilterAssignment('assigned')
-                      else if (type === 'converted') setFilterStatus('converted')
+                      // Reset stale filters so contacts are visible
+                      setFilterPriority('')
+                      setFilterTag('')
+                      setFilterUrgency('')
+                      setSearch('')
+                      if (type === 'unassigned') {
+                        setFilterAssignment('unassigned')
+                        setFilterStatus('')
+                      } else if (type === 'assigned') {
+                        setFilterAssignment('assigned')
+                        setFilterStatus('')
+                      } else if (type === 'converted') {
+                        setFilterAssignment('all')
+                        setFilterStatus('converted')
+                      } else {
+                        setFilterAssignment('all')
+                        setFilterStatus('')
+                      }
                     }}
                   />
 
@@ -718,7 +816,20 @@ export default function AdminDashboard() {
                         <ConnectedChart data={analyticsData.connectedVsNot} />
                         <FollowupPipelineCard
                           data={analyticsData.followupPipeline}
-                          onSelectBucket={() => handleSetMainView('overdue')}
+                          onSelectBucket={(bucketKey) => {
+                            if (bucketKey === 'noFollowup') {
+                              handleSetMainView('contacts')
+                              setFilterAssignment('all')
+                              setFilterPriority('')
+                              setFilterTag('')
+                              setFilterUrgency('')
+                              setFilterStatus('')
+                              setSearch('')
+                            } else {
+                              setSelectedFollowupBucket(bucketKey)
+                              handleSetMainView('overdue')
+                            }
+                          }}
                         />
                       </div>
 
@@ -727,10 +838,16 @@ export default function AdminDashboard() {
                         data={analyticsData.urgency}
                         onFilterClick={(statusKey) => {
                           handleSetMainView('contacts')
+                          setFilterPriority('')
+                          setFilterTag('')
+                          setSearch('')
+                          setFilterStatus('')
                           if (statusKey === 'unassigned') {
                             setFilterAssignment('unassigned')
+                            setFilterUrgency('')
                           } else {
                             setFilterAssignment('assigned')
+                            setFilterUrgency(statusKey) // 'red' | 'orange' | 'green' | 'attempted'
                           }
                         }}
                       />
@@ -781,7 +898,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-3 gap-2 bg-[var(--surface)] p-1.5 rounded-[var(--radius-md)] border border-[var(--border)] shadow-[var(--shadow-card)]">
                 <button
                   type="button"
-                  onClick={() => setFilterAssignment('all')}
+                  onClick={() => {
+                    setFilterAssignment('all')
+                    setFilterUrgency('')
+                  }}
                   className={`py-2 px-3 rounded-[var(--radius-sm)] text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
                     filterAssignment === 'all'
                       ? 'bg-[var(--accent)] text-white shadow-xs'
@@ -794,7 +914,10 @@ export default function AdminDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => setFilterAssignment('unassigned')}
+                  onClick={() => {
+                    setFilterAssignment('unassigned')
+                    setFilterUrgency('')
+                  }}
                   className={`py-2 px-3 rounded-[var(--radius-sm)] text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
                     filterAssignment === 'unassigned'
                       ? 'bg-amber-600 text-white shadow-xs'
@@ -808,7 +931,10 @@ export default function AdminDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => setFilterAssignment('assigned')}
+                  onClick={() => {
+                    setFilterAssignment('assigned')
+                    setFilterUrgency('')
+                  }}
                   className={`py-2 px-3 rounded-[var(--radius-sm)] text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
                     filterAssignment === 'assigned'
                       ? 'bg-indigo-600 text-white shadow-xs'
@@ -830,14 +956,19 @@ export default function AdminDashboard() {
                       type="search"
                       placeholder="Search name, phone, company, freelancer..."
                       value={search}
-                      onChange={e => setSearch(e.target.value)}
+                      onChange={e => {
+                        setSearch(e.target.value)
+                      }}
                       className="w-full pl-8 pr-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
                     />
                   </div>
 
                   <select
                     value={filterPriority}
-                    onChange={e => setFilterPriority(e.target.value)}
+                    onChange={e => {
+                      setFilterPriority(e.target.value)
+                      setFilterUrgency('')
+                    }}
                     className="px-2.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
                   >
                     <option value="">Priority: All</option>
@@ -847,7 +978,10 @@ export default function AdminDashboard() {
 
                   <select
                     value={filterStatus}
-                    onChange={e => setFilterStatus(e.target.value)}
+                    onChange={e => {
+                      setFilterStatus(e.target.value)
+                      setFilterUrgency('')
+                    }}
                     className="px-2.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
                   >
                     <option value="">Status: All</option>
@@ -857,8 +991,23 @@ export default function AdminDashboard() {
                   </select>
 
                   <select
+                    value={filterUrgency}
+                    onChange={e => setFilterUrgency(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
+                  >
+                    <option value="">Urgency: All</option>
+                    <option value="red">🔴 Red (&gt;48h)</option>
+                    <option value="orange">🟠 Orange (24–48h)</option>
+                    <option value="green">🟢 Green (&lt;24h)</option>
+                    <option value="attempted">⚪ Attempted</option>
+                  </select>
+
+                  <select
                     value={filterTag}
-                    onChange={e => setFilterTag(e.target.value)}
+                    onChange={e => {
+                      setFilterTag(e.target.value)
+                      setFilterUrgency('')
+                    }}
                     className="px-2.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] focus:outline-none"
                   >
                     <option value="">Tag: All</option>
@@ -866,6 +1015,25 @@ export default function AdminDashboard() {
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
+
+                  {(search || filterPriority || filterStatus || filterUrgency || filterTag || filterAssignment !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('')
+                        setFilterPriority('')
+                        setFilterStatus('')
+                        setFilterUrgency('')
+                        setFilterTag('')
+                        setFilterAssignment('all')
+                      }}
+                      className="p-1.5 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-xs flex items-center gap-1"
+                      title="Reset all filters"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setShowAddContact(true)}
@@ -1008,11 +1176,58 @@ export default function AdminDashboard() {
           {/* ===================== VIEW 3: OVERDUE FOLLOW-UPS ===================== */}
           {mainView === 'overdue' && (
             <div className="space-y-3">
-              {overdueList.length === 0 ? (
+              {/* Bucket Selector Strip */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 bg-[var(--surface)] p-1.5 rounded-[var(--radius-md)] border border-[var(--border)] shadow-[var(--shadow-card)] flex-1">
+                  {[
+                    { key: 'overdue', label: 'All Overdue' },
+                    { key: 'dueToday', label: 'Due Today' },
+                    { key: 'next7Days', label: 'Next 7 Days' },
+                    { key: 'days8to30', label: '8–30 Days' },
+                    { key: 'days31Plus', label: '31+ Days' },
+                  ].map(b => (
+                    <button
+                      key={b.key}
+                      type="button"
+                      onClick={() => setSelectedFollowupBucket(b.key)}
+                      className={`py-2 px-3 rounded-[var(--radius-sm)] text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                        selectedFollowupBucket === b.key
+                          ? b.key === 'overdue'
+                            ? 'bg-red-600 text-white shadow-xs'
+                            : b.key === 'dueToday'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'bg-[var(--accent)] text-white shadow-xs'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--bg)]'
+                      }`}
+                    >
+                      <span>{b.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <Link
+                  href="/admin/calendar"
+                  className="text-xs text-[var(--accent)] hover:underline font-semibold whitespace-nowrap"
+                >
+                  View in Calendar →
+                </Link>
+              </div>
+
+              {followupsLoading ? (
+                <div className="text-center py-12 text-xs text-[var(--text-muted)]">Loading activities...</div>
+              ) : overdueList.length === 0 ? (
                 <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-12 text-center text-xs text-[var(--text-muted)] space-y-1">
                   <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500 mb-1" />
-                  <p className="font-semibold text-[var(--text-primary)] text-sm">All Scheduled Activities On Time</p>
-                  <p>No overdue follow-up calls or meetings found.</p>
+                  <p className="font-semibold text-[var(--text-primary)] text-sm">
+                    {selectedFollowupBucket === 'overdue'
+                      ? 'All Scheduled Activities On Time'
+                      : 'No Activities Scheduled'}
+                  </p>
+                  <p>
+                    {selectedFollowupBucket === 'overdue'
+                      ? 'No overdue follow-up calls or meetings found.'
+                      : 'No follow-up calls or meetings scheduled for this timeframe.'}
+                  </p>
                 </div>
               ) : (
                 overdueList.map(activity => (
@@ -1127,6 +1342,75 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* ===================== VIEW 5: SETTINGS ===================== */}
+          {mainView === 'settings' && (
+            <div className="space-y-4 max-w-2xl">
+              {/* Danger Zone Card */}
+              <div className="bg-[var(--surface)] border-2 border-red-500/40 rounded-[var(--radius-lg)] p-5 shadow-[var(--shadow-card)] space-y-4">
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                  <div>
+                    <h2 className="font-bold text-sm text-red-600 dark:text-red-400">Danger Zone — Clear All Data</h2>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      Permanently deletes all contacts, calls, interactions, activities, and notifications.
+                      User accounts and category tags are preserved. This action is irreversible.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Current counts */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-sm)] p-2.5 text-center">
+                    <p className="font-mono font-bold text-[var(--text-primary)] text-lg">{contacts.length}</p>
+                    <p className="text-[var(--text-muted)]">contacts in system</p>
+                  </div>
+                  <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-sm)] p-2.5 text-center">
+                    <p className="font-mono font-bold text-[var(--text-primary)] text-lg">
+                      {analyticsData?.kpis?.find((k: { type: string }) => k.type === 'calls')?.value ?? '—'}
+                    </p>
+                    <p className="text-[var(--text-muted)]">call logs recorded</p>
+                  </div>
+                </div>
+
+                {clearDataResult ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-[var(--radius-sm)] p-3 space-y-1">
+                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">✓ Data cleared successfully</p>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                      Deleted: {clearDataResult.contacts} contacts · {clearDataResult.calls} calls · {clearDataResult.interactions} interactions · {clearDataResult.activities} activities
+                    </p>
+                    <button
+                      onClick={() => { setClearDataResult(null); window.location.reload() }}
+                      className="text-[11px] text-[var(--accent)] underline"
+                    >
+                      Reload page
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      To confirm, type <strong className="text-red-600 font-mono">DELETE ALL DATA</strong> exactly:
+                    </p>
+                    <input
+                      type="text"
+                      value={clearDataText}
+                      onChange={e => setClearDataText(e.target.value)}
+                      placeholder="Type DELETE ALL DATA to confirm"
+                      className="w-full px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg)] border border-red-500/30 text-xs text-[var(--text-primary)] font-mono focus:outline-none focus:border-red-500"
+                    />
+                    <button
+                      onClick={handleClearData}
+                      disabled={clearDataText !== 'DELETE ALL DATA' || clearDataLoading}
+                      className="w-full py-2.5 rounded-[var(--radius-sm)] text-xs font-bold bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {clearDataLoading ? 'Deleting...' : 'Clear All Data — Cannot Be Undone'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
