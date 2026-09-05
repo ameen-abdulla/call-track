@@ -1377,7 +1377,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-sm)] p-2.5 text-center">
                     <p className="font-mono font-bold text-[var(--text-primary)] text-lg">
-                      {analyticsData?.kpis?.find((k: { type: string }) => k.type === 'calls')?.value ?? '—'}
+                      {analyticsData?.kpis?.callsLogged ?? '—'}
                     </p>
                     <p className="text-[var(--text-muted)]">call logs recorded</p>
                   </div>

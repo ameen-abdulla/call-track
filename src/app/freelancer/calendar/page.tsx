@@ -98,7 +98,7 @@ function CalendarInner() {
     const matchesStatus = statusFilter === 'pending'
       ? a.status === 'pending' || a.status === 'overdue'
       : a.status === 'completed'
-    const matchesContact = !contactFilter || a.contact.name.toLowerCase().includes(contactFilter.toLowerCase())
+    const matchesContact = !contactFilter || (a.contact?.name?.toLowerCase().includes(contactFilter.toLowerCase()) ?? false)
     return matchesStatus && matchesContact
   })
 
@@ -234,22 +234,26 @@ function CalendarInner() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="font-semibold text-xs text-[var(--text-primary)]">{activity.contact.name}</p>
+                      <p className="font-semibold text-xs text-[var(--text-primary)]">{activity.contact?.name || 'Unnamed Contact'}</p>
                       {followUpTypeBadge(activity.followUpType)}
                     </div>
-                    <p className="text-xs font-mono text-[var(--text-muted)] mt-0.5">{activity.contact.phone}</p>
+                    {activity.contact?.phone && (
+                      <p className="text-xs font-mono text-[var(--text-muted)] mt-0.5">{activity.contact.phone}</p>
+                    )}
                     <p className={`text-[11px] font-mono font-semibold mt-1 ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-[var(--accent)]'}`}>
                       {activity.activityType.toUpperCase()} · {isOverdue ? `OVERDUE · ${new Date(activity.dueDate).toLocaleDateString()}` : dueTime}
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-1 shrink-0">
-                    <Link
-                      href={`/freelancer/call/${activity.contact.id}`}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold flex items-center gap-1 transition-colors"
-                    >
-                      <Phone className="w-3 h-3" /> Call
-                    </Link>
+                    {activity.contact?.id && (
+                      <Link
+                        href={`/freelancer/call/${activity.contact.id}`}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold flex items-center gap-1 transition-colors"
+                      >
+                        <Phone className="w-3 h-3" /> Call
+                      </Link>
+                    )}
                     {activity.status !== 'completed' && (
                       <button
                         onClick={() => handleComplete(activity.id)}

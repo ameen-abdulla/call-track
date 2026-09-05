@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
@@ -105,7 +105,7 @@ export default function AdminCalendarPage() {
   const isToday = selectedDate === today
 
   const filtered = activities.filter(a => {
-    return !contactFilter || a.contact.name.toLowerCase().includes(contactFilter.toLowerCase())
+    return !contactFilter || (a.contact?.name?.toLowerCase().includes(contactFilter.toLowerCase()) ?? false)
   })
 
   return (
@@ -230,10 +230,12 @@ export default function AdminCalendarPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="font-bold text-sm text-[var(--text-primary)]">{activity.contact.name}</p>
+                      <p className="font-bold text-sm text-[var(--text-primary)]">{activity.contact?.name || 'Unnamed Contact'}</p>
                       {followUpTypeBadge(activity.followUpType)}
                     </div>
-                    <p className="text-xs font-mono text-[var(--text-secondary)]">{activity.contact.phone}</p>
+                    {activity.contact?.phone && (
+                      <p className="text-xs font-mono text-[var(--text-secondary)]">{activity.contact.phone}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-1 font-mono text-xs font-semibold">
                       <span className={isOverdue ? 'text-red-600 dark:text-red-400' : 'text-[var(--accent)]'}>
                         {activity.activityType.toUpperCase()}
@@ -241,7 +243,7 @@ export default function AdminCalendarPage() {
                         {isOverdue ? `OVERDUE · ${new Date(activity.dueDate).toLocaleDateString()}` : dueTime}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Caller: {activity.agent.name}</p>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Caller: {activity.agent?.name || 'Unassigned'}</p>
                   </div>
 
                   <button
