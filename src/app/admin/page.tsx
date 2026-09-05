@@ -445,10 +445,20 @@ export default function AdminDashboard() {
     if (!file) return
     const formData = new FormData()
     formData.append('file', file)
-    const res = await fetch('/api/contacts/import', { method: 'POST', body: formData })
-    const data = await res.json()
-    alert(`Imported ${data.imported} contacts successfully!`)
-    refreshAll()
+    try {
+      const res = await fetch('/api/contacts/import', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        alert(`Imported ${data.imported} contacts successfully!`)
+        refreshAll()
+      } else {
+        alert(data.error || 'Failed to import contacts')
+      }
+    } catch {
+      alert('Network error while importing contacts')
+    } finally {
+      e.target.value = ''
+    }
   }
 
   async function handleClearData() {
