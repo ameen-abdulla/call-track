@@ -8,6 +8,9 @@ services:
       - call-track-data:/data
     environment:
       - DATABASE_URL=file:/data/dev.db
+      # IMPORTANT: Replace AUTH_SECRET and NEXTAUTH_SECRET with strong random values before deploying.
+      # Generate one: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      # NEVER use the placeholder value in production.
       - AUTH_SECRET=your-secret-change-in-production-min-32-chars
       - AUTH_URL=https://calltrack.flexibook.ai
       - AUTH_TRUST_HOST=true

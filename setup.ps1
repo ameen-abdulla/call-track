@@ -67,4 +67,10 @@ Write-Host ""
 Write-Host "  IMPORTANT: The first start will take 3-5 minutes to build." -ForegroundColor Yellow
 Write-Host "  After that it starts in seconds." -ForegroundColor Yellow
 Write-Host ""
+Write-Host "  Your login credentials:" -ForegroundColor White
+Write-Host "  Check 'SEED_CREDENTIALS.txt' in this folder for your admin and freelancer passwords." -ForegroundColor Gray
+Write-Host ""
+Write-Host "  Forgot your password?" -ForegroundColor Yellow
+Write-Host "  Run: docker exec -it call-track node /app/cli/reset-admin.js" -ForegroundColor Cyan
+Write-Host ""
 Read-Host "  Press Enter to finish"
